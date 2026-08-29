@@ -1,0 +1,7 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #F5F3EA; color: #14201A; font-family: system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; }
+button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible { outline: 3px solid #F2B441; outline-offset: 2px; }
+a { color: inherit; }
+.chip:active { transform: scale(.94); }
+@media (prefers-reduced-motion: no-preference) { .chip { transition: transform .12s; } }
