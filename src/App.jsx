@@ -8,6 +8,7 @@ import LiveGame from "./pages/LiveGame.jsx";
 import GameDetail from "./pages/GameDetail.jsx";
 import Players from "./pages/Players.jsx";
 import SoccerSmarts from "./pages/SoccerSmarts.jsx";
+import Homework from "./pages/Homework.jsx";
 
 export default function App() {
   const [session, setSession] = useState(undefined);
@@ -30,7 +31,7 @@ export default function App() {
         </div>
         {session && (
           <nav style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-            {[["/games", "Games"], ["/players", "Players"]].map(([to, label]) => (
+            {[["/games", "Games"], ["/players", "Players"], ["/homework", "Homework"]].map(([to, label]) => (
               <NavLink key={to} to={to} style={({ isActive }) => ({
                 textDecoration: "none", borderRadius: 6, padding: "6px 9px", fontSize: 13, fontWeight: 600,
                 background: isActive ? C.ink : "transparent", color: isActive ? C.chalk : C.slate })}>
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="/games/:id/live" element={<LiveGame />} />
             <Route path="/games/:id" element={<GameDetail />} />
             <Route path="/players" element={<Players />} />
+            <Route path="/homework" element={<Homework />} />
             <Route path="*" element={<Navigate to="/games" replace />} />
           </>
         )}

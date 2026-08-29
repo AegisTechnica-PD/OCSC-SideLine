@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { supabase } from "../lib/supabase";
 
 // ---------- Theme ----------
 const C = {
@@ -561,6 +562,9 @@ function Field({ primary, others = [] }) {
 export default function TacticsTrainer() {
   const [screen, setScreen] = useState("home"); // home | play | done | board
   const [name, setName] = useState("");
+  const [jersey, setJersey] = useState("");
+  const [saved, setSaved] = useState(null); // null | "saving" | "ok" | "fail"
+  const savedFor = useRef(null);
   const [myPos, setMyPos] = useState("All");
   const [round, setRound] = useState([]);
   const [idx, setIdx] = useState(0);
@@ -578,6 +582,7 @@ export default function TacticsTrainer() {
     setRound(buildRound(myPos));
     setIdx(0); setScore(0); setStreak(0); setBestStreak(0);
     setPicked(null); setPrStats({});
+    savedFor.current = null; setSaved(null);
     setScreen("play");
   }
 
@@ -603,7 +608,19 @@ export default function TacticsTrainer() {
     else { setIdx(idx + 1); setPicked(null); }
   }
 
-  const scoreText = `${name.trim() || "Player"} \u2014 ${myPos === "All" ? "All positions" : myPos} \u2014 Week of ${weekLabel()} \u2014 ${score} pts, best streak ${bestStreak} \u2014 ${levelFor(score)}`;
+  useEffect(() => {
+    if (screen !== "done") return;
+    const key = `${weekEpoch()}-${round.length}-${score}-${Date.now()}`;
+    if (savedFor.current === screen + idx) return;
+    savedFor.current = screen + idx;
+    setSaved("saving");
+    supabase.from("smarts_sessions").insert({
+      jersey: jersey.trim(), player_name: name.trim(), position: myPos,
+      week_epoch: weekEpoch(), week_label: weekLabel(), score, best_streak: bestStreak, principles: prStats,
+    }).then(({ error }) => setSaved(error ? "fail" : "ok"));
+  }, [screen]);
+
+  const scoreText = `#${jersey.trim() || "?"} ${name.trim() || "Player"} \u2014 ${myPos === "All" ? "All positions" : myPos} \u2014 Week of ${weekLabel()} \u2014 ${score} pts, best streak ${bestStreak} \u2014 ${levelFor(score)}`;
 
   const shell = {
     minHeight: "100vh", background: `radial-gradient(circle at 50% 0%, ${C.pitch}, ${C.pitchDeep} 70%)`,
@@ -627,17 +644,21 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v13`}
+          {`Week of ${weekLabel()} · 3-4-1 · v14`}
         </div>
       </div>
 
       {screen === "home" && (
         <div style={card}>
           <label style={{ fontSize: 13, fontWeight: 800, color: C.chalkDim, textTransform: "uppercase", letterSpacing: 1 }}>
-            Your first name
+            Your number and first name
           </label>
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={14} placeholder="Your name here"
-            style={{ width: "100%", boxSizing: "border-box", marginTop: 6, marginBottom: 16, padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.line}`, background: C.pitchDeep, color: C.chalk, fontSize: 16, fontFamily: "'Nunito'", fontWeight: 700 }} />
+          <div style={{ display: "flex", gap: 8, marginTop: 6, marginBottom: 16 }}>
+            <input value={jersey} onChange={(e) => setJersey(e.target.value.replace(/\D/g, "").slice(0, 2))} inputMode="numeric" placeholder="#" aria-label="Jersey number"
+              style={{ width: 72, boxSizing: "border-box", padding: "12px 10px", borderRadius: 10, border: `1.5px solid ${jersey ? C.volt : C.line}`, background: C.pitchDeep, color: C.chalk, fontSize: 18, textAlign: "center", fontFamily: "'Nunito'", fontWeight: 800 }} />
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={14} placeholder="Your name here"
+              style={{ flex: 1, boxSizing: "border-box", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.line}`, background: C.pitchDeep, color: C.chalk, fontSize: 16, fontFamily: "'Nunito'", fontWeight: 700 }} />
+          </div>
 
           <label style={{ fontSize: 13, fontWeight: 800, color: C.chalkDim, textTransform: "uppercase", letterSpacing: 1 }}>
             Your position
@@ -651,7 +672,9 @@ export default function TacticsTrainer() {
             ))}
           </div>
 
-          <button onClick={start} style={btn(C.volt)}>Kick off — this week's 10</button>
+          <button onClick={start} disabled={!jersey.trim()} style={{ ...btn(C.volt), opacity: jersey.trim() ? 1 : .45 }}>
+            {jersey.trim() ? "Kick off — this week's 10" : "Enter your number to kick off"}
+          </button>
           <p style={{ fontSize: 12, color: C.chalkDim, marginTop: 14, marginBottom: 0, lineHeight: 1.5 }}>
             This week's 10 homework questions are the same for everyone at your position — a fresh set drops every Friday. When you finish, screenshot your score page and post it in GameChanger before next week's first practice.
           </p>
@@ -744,7 +767,7 @@ export default function TacticsTrainer() {
               Homework done? Prove it!
             </div>
             <p style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 8px" }}>
-              📸 Screenshot this page and post it in GameChanger.
+              {saved === "ok" ? "✅ Saved — your coaches can see this score." : saved === "fail" ? "📸 Couldn't save. Screenshot this page and post it in GameChanger." : "Saving your score…"}
             </p>
             <p style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.5, margin: 0, color: C.chalkDim, wordBreak: "break-word" }}>{scoreText}</p>
           </div>

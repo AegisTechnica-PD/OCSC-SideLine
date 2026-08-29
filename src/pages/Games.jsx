@@ -17,6 +17,11 @@ export default function Games() {
     if (!error) nav(`/games/${data.id}/live`);
   };
 
+  const del = async (g) => {
+    if (!confirm(`Delete ${g.home ? "vs" : "at"} ${g.opponent || "TBD"} (${g.played_on})? This removes its minutes and events too.`)) return;
+    await supabase.from("games").delete().eq("id", g.id);
+    setGames((gs) => gs.filter((x) => x.id !== g.id));
+  };
   const live = games.filter((g) => !g.finished);
   const past = games.filter((g) => g.finished);
 
@@ -37,17 +42,17 @@ export default function Games() {
 
       {live.length > 0 && <>
         <div style={h2}>IN PROGRESS</div>
-        {live.map((g) => <Row key={g.id} g={g} to={`/games/${g.id}/live`} />)}
+        {live.map((g) => <Row key={g.id} g={g} to={`/games/${g.id}/live`} onDelete={() => del(g)} />)}
       </>}
 
       <div style={h2}>RESULTS</div>
       {past.length === 0 && <p style={{ fontSize: 13, color: C.slate }}>No finished games yet.</p>}
-      {past.map((g) => <Row key={g.id} g={g} to={`/games/${g.id}`} />)}
+      {past.map((g) => <Row key={g.id} g={g} to={`/games/${g.id}`} onDelete={() => del(g)} />)}
     </div>
   );
 }
 
-function Row({ g, to }) {
+function Row({ g, to, onDelete }) {
   const res = g.goals_for > g.goals_against ? "W" : g.goals_for < g.goals_against ? "L" : "D";
   const col = res === "W" ? C.grass : res === "L" ? C.red : C.slate;
   return (
@@ -59,7 +64,8 @@ function Row({ g, to }) {
         <div style={{ fontWeight: 600 }}>{g.home ? "vs" : "at"} {g.opponent || "TBD"}</div>
         <div style={{ fontSize: 12, color: C.slate }}>{g.played_on}{g.finished ? "" : " · live"}</div>
       </span>
-      <span style={{ color: C.slate }}>›</span>
+      <button onClick={(e) => { e.preventDefault(); onDelete(); }} aria-label="Delete game"
+        style={{ border: 0, background: "transparent", color: C.slate, fontSize: 16, padding: "4px 8px" }}>✕</button>
     </Link>
   );
 }

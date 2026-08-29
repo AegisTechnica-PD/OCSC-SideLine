@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { labelOf, mmss, minuteOf, clockSeconds, minutesFromEvents } from "../lib/game";
 import { C, font, sBtn, h2, inp } from "../theme";
@@ -9,6 +9,7 @@ export default function GameDetail() {
   const [game, setGame] = useState(null);
   const [players, setPlayers] = useState([]);
   const [events, setEvents] = useState([]);
+  const nav = useNavigate();
 
   useEffect(() => {
     Promise.all([
@@ -27,6 +28,11 @@ export default function GameDetail() {
   const goals = stat("goal"), assists = stat("assist"), saves = stat("save");
   const played = players.filter((p) => mins[p.id] > 0).sort((a, b) => mins[b.id] - mins[a.id]);
 
+  const del = async () => {
+    if (!confirm("Delete this game and all its events?")) return;
+    await supabase.from("games").delete().eq("id", id);
+    nav("/games");
+  };
   const reopen = async () => { await supabase.from("games").update({ finished: false }).eq("id", id); setGame({ ...game, finished: false }); };
   const saveNotes = async (notes) => { setGame({ ...game, notes }); await supabase.from("games").update({ notes }).eq("id", id); };
 
@@ -44,6 +50,7 @@ export default function GameDetail() {
           {game.finished
             ? <button onClick={reopen} style={sBtn}>Reopen</button>
             : <Link to={`/games/${id}/live`} style={{ ...sBtn, textDecoration: "none", background: C.ink, color: C.chalk }}>Live</Link>}
+          <button onClick={del} style={{ ...sBtn, color: C.red }}>Delete</button>
         </span>
       </div>
 
