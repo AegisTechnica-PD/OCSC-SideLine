@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, NavLink, Navigate } from "react-router-dom";
+import { Routes, Route, NavLink, Navigate, useLocation } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 import { C, font } from "./theme";
 import Login from "./pages/Login.jsx";
@@ -18,6 +18,8 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const loc = useLocation();
+  if (loc.pathname.startsWith("/smarts")) return <SoccerSmarts />;
   if (session === undefined) return null;
 
   return (
@@ -28,13 +30,14 @@ export default function App() {
         </div>
         {session && (
           <nav style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-            {[["/games", "Games"], ["/players", "Players"], ["/smarts", "Smarts"]].map(([to, label]) => (
+            {[["/games", "Games"], ["/players", "Players"]].map(([to, label]) => (
               <NavLink key={to} to={to} style={({ isActive }) => ({
                 textDecoration: "none", borderRadius: 6, padding: "6px 9px", fontSize: 13, fontWeight: 600,
                 background: isActive ? C.ink : "transparent", color: isActive ? C.chalk : C.slate })}>
                 {label}
               </NavLink>
             ))}
+            <a href="/smarts" target="_blank" rel="noreferrer" style={{ textDecoration: "none", padding: "6px 9px", fontSize: 13, fontWeight: 600, color: C.slate }}>Smarts ↗</a>
             <button onClick={() => supabase.auth.signOut()} title="Sign out"
               style={{ border: 0, background: "transparent", color: C.slate, fontSize: 13, padding: "6px 4px" }}>Out</button>
           </nav>
@@ -42,7 +45,6 @@ export default function App() {
       </header>
 
       <Routes>
-        <Route path="/smarts" element={<SoccerSmarts />} />
         {!session ? (
           <Route path="*" element={<Login />} />
         ) : (
