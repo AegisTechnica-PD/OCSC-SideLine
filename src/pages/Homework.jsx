@@ -69,10 +69,10 @@ function RowBlock({ r, open, onToggle, weeks, weekLabel, onRemove }) {
     <>
       <tr onClick={onToggle} style={{ borderTop: `1px solid ${C.mist}`, textAlign: "right", cursor: "pointer", opacity: r.plays ? 1 : .5 }}>
         <td style={{ textAlign: "left", padding: "7px 0" }}><b>#{r.jersey}</b> {r.name}</td>
-        <td style={{ fontFamily: font.display, fontWeight: 800, fontSize: 18 }}>{r.weeksDone}<span style={{ color: C.slate, fontSize: 12 }}>/{weeks.length}</span></td>
+        <td style={{ fontFamily: font.display, fontWeight: 400, fontSize: 18 }}>{r.weeksDone}<span style={{ color: C.slate, fontSize: 12 }}>/{weeks.length}</span></td>
         <td>{r.plays}</td>
         <td>{r.best || ""}</td>
-        <td style={{ fontFamily: font.display, fontWeight: 800, fontSize: 18, color: C.grass }}>{r.points || ""}</td>
+        <td style={{ fontFamily: font.display, fontWeight: 400, fontSize: 18, color: C.win }}>{r.points || ""}</td>
       </tr>
       {open && (
         <tr><td colSpan={5} style={{ padding: "0 0 10px" }}>

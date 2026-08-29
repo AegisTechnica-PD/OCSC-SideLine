@@ -1,7 +1,9 @@
 * { box-sizing: border-box; }
-html, body { margin: 0; background: #F5F3EA; color: #14201A; font-family: system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; }
+html, body { margin: 0; background: #1B1B1F; color: #FAFAF8; font-family: 'Nunito',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; }
 button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-button:focus-visible, input:focus-visible { outline: 3px solid #F2B441; outline-offset: 2px; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid #E01F2D; outline-offset: 2px; }
 a { color: inherit; }
+select, input[type="date"] { color-scheme: dark; }
+input::placeholder { color: rgba(250,250,248,.4); }
 .chip:active { transform: scale(.94); }
 @media (prefers-reduced-motion: no-preference) { .chip { transition: transform .12s; } }

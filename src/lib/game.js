@@ -1,18 +1,34 @@
 // Shared game logic: formation, clock, and replaying events into state.
 
-export const SLOTS = [
-  { id: "ST", label: "Striker", row: 0, col: 1 },
-  { id: "LM", label: "Left Midfielder", row: 1, col: 0 },
-  { id: "CM", label: "Center Midfielder", row: 1, col: 1 },
-  { id: "RM", label: "Right Midfielder", row: 1, col: 2 },
-  { id: "DM", label: "Defensive Midfielder", row: 2, col: 1 },
-  { id: "LD", label: "Left Defender", row: 3, col: 0 },
-  { id: "CD", label: "Center Defender", row: 3, col: 1 },
-  { id: "RD", label: "Right Defender", row: 3, col: 2 },
-  { id: "GK", label: "Goalkeeper", row: 4, col: 1 },
-];
-export const slotById = Object.fromEntries(SLOTS.map((s) => [s.id, s]));
-export const labelOf = (sid) => slotById[sid]?.label ?? sid;
+// ---- positions & formations -------------------------------------------
+// Canonical labels from position_cards.pdf; side/role qualifiers in parens
+// only where a formation has two of the same position.
+export const POSITIONS = {
+  GK: "Goalkeeper",
+  LD: "Left Defender", CD: "Center Defender", RD: "Right Defender",
+  CDL: "Center Defender (Left)", CDR: "Center Defender (Right)",
+  DM: "Defensive Midfielder", DML: "Defensive Midfielder (Left)", DMR: "Defensive Midfielder (Right)",
+  LM: "Left Midfielder", CM: "Center Midfielder", RM: "Right Midfielder",
+  CML: "Center Midfielder (Left)", CMR: "Center Midfielder (Right)", AM: "Center Midfielder (Attacking)",
+  ST: "Striker", STL: "Striker (Left)", STR: "Striker (Right)",
+};
+export const labelOf = (sid) => POSITIONS[sid] ?? sid;
+
+// rows are listed attack -> goal, matching the on-screen pitch.
+export const FORMATIONS = {
+  "3-4-1":   { size: 9,  rows: [["ST"], ["LM", "CM", "RM"], ["DM"], ["LD", "CD", "RD"], ["GK"]] },
+  "3-3-2":   { size: 9,  rows: [["STL", "STR"], ["LM", "CM", "RM"], ["LD", "CD", "RD"], ["GK"]] },
+  "3-2-3":   { size: 9,  rows: [["STL", "ST", "STR"], ["CML", "CMR"], ["LD", "CD", "RD"], ["GK"]] },
+  "2-4-2":   { size: 9,  rows: [["STL", "STR"], ["LM", "CML", "CMR", "RM"], ["LD", "RD"], ["GK"]] },
+  "2-3-3":   { size: 9,  rows: [["STL", "ST", "STR"], ["LM", "CM", "RM"], ["LD", "RD"], ["GK"]] },
+  "4-3-1":   { size: 9,  rows: [["ST"], ["LM", "CM", "RM"], ["LD", "CDL", "CDR", "RD"], ["GK"]] },
+  "4-4-2":   { size: 11, rows: [["STL", "STR"], ["LM", "CML", "CMR", "RM"], ["LD", "CDL", "CDR", "RD"], ["GK"]] },
+  "4-3-3":   { size: 11, rows: [["STL", "ST", "STR"], ["CML", "DM", "CMR"], ["LD", "CDL", "CDR", "RD"], ["GK"]] },
+  "4-2-3-1": { size: 11, rows: [["ST"], ["LM", "AM", "RM"], ["DML", "DMR"], ["LD", "CDL", "CDR", "RD"], ["GK"]] },
+  "3-5-2":   { size: 11, rows: [["STL", "STR"], ["LM", "CML", "DM", "CMR", "RM"], ["LD", "CD", "RD"], ["GK"]] },
+};
+export const DEFAULT_FORMATION = "3-4-1";
+export const slotsFor = (f) => (FORMATIONS[f] || FORMATIONS[DEFAULT_FORMATION]).rows.flat();
 
 export const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 export const minuteOf = (s) => Math.floor(s / 60) + 1;
@@ -26,13 +42,13 @@ export function clockSeconds(game, now = Date.now()) {
 }
 
 /** Replay events -> lineup {slotId: playerId|null}. */
-export function lineupFromEvents(events) {
-  const lineup = Object.fromEntries(SLOTS.map((s) => [s.id, null]));
+export function lineupFromEvents(events, formation = DEFAULT_FORMATION) {
+  const lineup = Object.fromEntries(slotsFor(formation).map((id) => [id, null]));
   for (const e of events) {
     if (e.type === "on" || e.type === "move") {
       // clear the player from any other slot, then place
       for (const k of Object.keys(lineup)) if (lineup[k] === e.player_id) lineup[k] = null;
-      if (e.position) lineup[e.position] = e.player_id;
+      if (e.position && e.position in lineup) lineup[e.position] = e.player_id;
     } else if (e.type === "off") {
       for (const k of Object.keys(lineup)) if (lineup[k] === e.player_id) lineup[k] = null;
     }
@@ -45,7 +61,10 @@ export function minutesFromEvents(events, nowSeconds) {
   const onSince = {};
   const total = {};
   const sorted = [...events].sort((a, b) => a.second - b.second || a.id - b.id);
+  // A "final" only counts if nothing was logged after it (game reopened = final ignored).
+  const lastId = sorted.length ? sorted[sorted.length - 1].id : null;
   for (const e of sorted) {
+    if (e.type === "final" && e.id !== lastId) continue;
     if (e.type === "on") {
       if (onSince[e.player_id] == null) onSince[e.player_id] = e.second;
     } else if (e.type === "off") {

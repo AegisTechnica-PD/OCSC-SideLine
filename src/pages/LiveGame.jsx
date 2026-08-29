@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { SLOTS, labelOf, mmss, minuteOf, clockSeconds, lineupFromEvents, minutesFromEvents } from "../lib/game";
+import { FORMATIONS, DEFAULT_FORMATION, slotsFor, labelOf, mmss, minuteOf, clockSeconds, lineupFromEvents, minutesFromEvents } from "../lib/game";
 import { C, font, sBtn } from "../theme";
 
 export default function LiveGame() {
@@ -42,11 +42,12 @@ export default function LiveGame() {
   const secs = clockSeconds(game, now);
   const running = !!game?.clock_started_at;
   const byId = useMemo(() => Object.fromEntries(players.map((p) => [p.id, p])), [players]);
-  const lineup = useMemo(() => lineupFromEvents(events), [events]);
+  const formation = game?.formation || DEFAULT_FORMATION;
+  const lineup = useMemo(() => lineupFromEvents(events, formation), [events, formation]);
   const mins = useMemo(() => minutesFromEvents(events, secs), [events, secs]);
   const onPitch = new Set(Object.values(lineup).filter(Boolean));
   const bench = players.filter((p) => !onPitch.has(p.id));
-  const slotOf = (pid) => SLOTS.find((s) => lineup[s.id] === pid)?.id || null;
+  const slotOf = (pid) => slotsFor(formation).find((id) => lineup[id] === pid) || null;
   const tag = (pid) => `#${byId[pid]?.number ?? "?"}`;
 
   if (!game) return <div style={{ padding: 14, color: C.slate }}>Loading…</div>;
@@ -81,6 +82,16 @@ export default function LiveGame() {
     setEvents((ev) => ev.filter((x) => x.id !== last.id));
     if (last.type === "goal") patchGame({ goals_for: Math.max(0, game.goals_for - 1) });
     if (last.type === "opp_goal") patchGame({ goals_against: Math.max(0, game.goals_against - 1) });
+  };
+
+  const changeFormation = async (f) => {
+    if (f === formation) return;
+    const keep = new Set(slotsFor(f));
+    const displaced = Object.entries(lineup).filter(([sid, pid]) => pid && !keep.has(sid)).map(([, pid]) => pid);
+    if (displaced.length && !confirm(`${displaced.length} player${displaced.length > 1 ? "s" : ""} will move to the bench. Switch to ${f}?`)) return;
+    if (displaced.length) await add(displaced.map((pid) => ({ type: "off", player_id: pid, meta: { reason: "formation" } })));
+    await patchGame({ formation: f });
+    setSelected(null);
   };
 
   // ---- lineup taps ----
@@ -140,13 +151,13 @@ export default function LiveGame() {
       {/* score + clock */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px 8px" }}>
         <button onClick={toggleClock} className="chip" style={{
-          fontFamily: font.display, fontWeight: 800, fontSize: 30, letterSpacing: 1, lineHeight: 1, border: 0, borderRadius: 8,
-          padding: "6px 12px", background: running ? C.red : C.ink, color: C.chalk, minWidth: 120 }}>
+          fontFamily: font.display, fontWeight: 400, fontSize: 30, letterSpacing: 1, lineHeight: 1, border: 0, borderRadius: 8,
+          padding: "6px 12px", background: running ? C.red : C.ink, color: running ? C.ink : C.chalk, minWidth: 120 }}>
           {mmss(secs)}
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, opacity: .8, marginTop: 2 }}>{running ? "PAUSE" : "START"} · {game.half === 1 ? "1ST" : "2ND"}</div>
         </button>
         <div style={{ textAlign: "center", flex: 1 }}>
-          <div style={{ fontFamily: font.display, fontWeight: 800, fontSize: 34, lineHeight: 1 }}>{game.goals_for}–{game.goals_against}</div>
+          <div style={{ fontFamily: font.display, fontWeight: 400, fontSize: 34, lineHeight: 1 }}>{game.goals_for}–{game.goals_against}</div>
           <div style={{ fontSize: 11, color: C.slate, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{game.home ? "vs" : "at"} {game.opponent || "TBD"}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -159,13 +170,13 @@ export default function LiveGame() {
       <div style={{ display: "flex", gap: 6, padding: "0 14px 8px" }}>
         {picker ? (
           <>
-            <span style={{ ...sBtn, background: C.amber, border: 0, flex: 1, textAlign: "center" }}>{hint}</span>
+            <span style={{ ...sBtn, background: C.amber, color: C.ink, border: 0, flex: 1, textAlign: "center" }}>{hint}</span>
             {picker.step === "assist" && <button onClick={() => pick(null)} style={sBtn}>No assist</button>}
             <button onClick={() => setPicker(null)} style={sBtn}>Cancel</button>
           </>
         ) : (
           <>
-            <button onClick={() => startPick("goal")} style={{ ...sBtn, background: C.amber, border: 0, fontFamily: font.display, fontSize: 16, fontWeight: 800, letterSpacing: 1 }}>GOAL</button>
+            <button onClick={() => startPick("goal")} style={{ ...sBtn, background: C.amber, color: C.ink, border: 0, fontFamily: font.display, fontSize: 17, fontWeight: 400, letterSpacing: 1 }}>GOAL</button>
             <button onClick={oppGoal} style={sBtn}>Opp goal</button>
             <button onClick={() => startPick("save")} style={sBtn}>Save</button>
             <button onClick={() => startPick("card")} style={sBtn}>Card</button>
@@ -182,14 +193,18 @@ export default function LiveGame() {
             {v === "log" ? `Log (${events.length})` : "Pitch"}
           </button>
         ))}
-        {!picker && <span style={{ fontSize: 12, color: C.slate, alignSelf: "center", marginLeft: 4 }}>{hint}</span>}
+        <select value={formation} onChange={(e) => changeFormation(e.target.value)} aria-label="Formation"
+          style={{ marginLeft: "auto", background: C.deep, color: C.ink, border: `1.5px solid ${C.mist}`, borderRadius: 6, padding: "4px 6px", fontSize: 13, fontWeight: 800, fontFamily: font.body }}>
+          {Object.entries(FORMATIONS).map(([k, f]) => <option key={k} value={k}>{k} · {f.size}v{f.size}</option>)}
+        </select>
       </div>
+      {!picker && <div style={{ fontSize: 12, color: C.slate, padding: "0 14px 6px" }}>{hint}</div>}
 
       {tab === "pitch" ? (
         <>
-          <Pitch lineup={lineup} byId={byId} mins={mins} selected={selected} onSlot={tapSlot} highlight={!!picker} />
+          <Pitch rows={FORMATIONS[formation].rows} lineup={lineup} byId={byId} mins={mins} selected={selected} onSlot={tapSlot} highlight={!!picker} />
           <div style={{ padding: "12px 14px 4px", display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontFamily: font.display, fontWeight: 800, fontSize: 18, letterSpacing: 1 }}>BENCH</span>
+            <span style={{ fontFamily: font.display, fontWeight: 400, fontSize: 18, letterSpacing: 1 }}>BENCH</span>
             <span style={{ fontSize: 12, color: C.slate }}>{bench.length} available</span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 14px" }}>
@@ -202,7 +217,7 @@ export default function LiveGame() {
           {log.length === 0 && <p style={{ fontSize: 13, color: C.slate }}>Nothing yet. Subs and goals show up here with the clock.</p>}
           {log.map((e) => (
             <div key={e.id} style={{ display: "flex", gap: 12, padding: "8px 0", borderBottom: `1px solid ${C.mist}`, fontSize: 14 }}>
-              <span style={{ fontFamily: font.display, fontWeight: 800, fontSize: 16, minWidth: 54, color: C.slate }}>{e.t}</span>
+              <span style={{ fontFamily: font.display, fontWeight: 400, fontSize: 16, minWidth: 54, color: C.slate }}>{e.t}</span>
               <span>{e.text}</span>
             </div>
           ))}
@@ -212,34 +227,34 @@ export default function LiveGame() {
   );
 }
 
-function Pitch({ lineup, byId, mins, selected, onSlot, highlight }) {
-  const line = "2px solid rgba(245,243,234,.55)";
+function Pitch({ rows, lineup, byId, mins, selected, onSlot, highlight }) {
+  const line = "2px solid rgba(250,250,248,.28)";
   return (
-    <div style={{ margin: "0 10px", background: C.grass, borderRadius: 12, padding: "14px 8px 10px", position: "relative",
+    <div style={{ margin: "0 10px", background: C.grass, borderRadius: 12, padding: "14px 8px 10px", position: "relative", border: `1px solid ${C.mist}`,
       backgroundImage: `repeating-linear-gradient(0deg, ${C.grass} 0 20%, ${C.grassDeep} 20% 40%)` }}>
       <div style={{ position: "absolute", inset: 8, border: line, borderRadius: 4, pointerEvents: "none" }} />
       <div style={{ position: "absolute", left: "30%", right: "30%", bottom: 8, height: 44, border: line, borderBottom: 0, pointerEvents: "none" }} />
       <div style={{ position: "absolute", left: "30%", right: "30%", top: 8, height: 44, border: line, borderTop: 0, pointerEvents: "none" }} />
       <div style={{ display: "grid", rowGap: 10, position: "relative" }}>
-        {[0, 1, 2, 3, 4].map((row) => (
-          <div key={row} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", columnGap: 8 }}>
-            {[0, 1, 2].map((col) => {
-              const slot = SLOTS.find((s) => s.row === row && s.col === col);
-              if (!slot) return <div key={col} />;
-              const pid = lineup[slot.id];
+        {rows.map((row, ri) => (
+          <div key={ri} style={{ display: "flex", justifyContent: "center", gap: row.length >= 4 ? 5 : 8 }}>
+            {row.map((sid) => {
+              const pid = lineup[sid];
               const p = pid ? byId[pid] : null;
+              const wide = row.length >= 4;
               return (
-                <button key={slot.id} onClick={() => onSlot(slot.id)} className="chip" style={{
-                  border: pid && selected === pid ? `3px solid ${C.amber}` : highlight && pid ? `2px solid ${C.amber}` : "2px dashed rgba(245,243,234,.5)",
-                  background: pid ? "rgba(20,32,26,.78)" : "rgba(20,32,26,.18)", color: C.chalk, borderRadius: 10,
-                  padding: "6px 4px 5px", minHeight: 64, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                <button key={sid} onClick={() => onSlot(sid)} className="chip" style={{
+                  flex: `0 1 ${row.length === 1 ? 33 : row.length === 2 ? 40 : 100 / row.length}%`, minWidth: 0,
+                  border: pid && selected === pid ? `3px solid ${C.amber}` : highlight && pid ? `2px solid ${C.amber}` : pid ? "2px solid rgba(250,250,248,.18)" : "2px dashed rgba(250,250,248,.35)",
+                  background: pid ? "#27272C" : "rgba(250,250,248,.05)", color: C.ink, borderRadius: 10,
+                  padding: wide ? "6px 2px 5px" : "6px 4px 5px", minHeight: 64, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
                   {p ? (<>
-                    <span style={{ fontFamily: font.display, fontWeight: 800, fontSize: 30, lineHeight: 1, color: C.amber }}>{p.number}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name || "—"}</span>
+                    <span style={{ fontFamily: font.display, fontWeight: 400, fontSize: wide ? 26 : 30, lineHeight: 1, color: C.amber }}>{p.number}</span>
+                    <span style={{ fontSize: wide ? 11 : 12, fontWeight: 700, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name || "—"}</span>
                     <span style={{ fontSize: 10, opacity: .7 }}>{Math.floor((mins[pid] || 0) / 60)}′</span>
-                    <span style={{ fontSize: 9, letterSpacing: .5, opacity: .6, marginTop: 2 }}>{slot.label.toUpperCase()}</span>
+                    <span style={{ fontSize: wide ? 8 : 9, letterSpacing: .5, opacity: .6, marginTop: 2, textAlign: "center", lineHeight: 1.1 }}>{labelOf(sid).toUpperCase()}</span>
                   </>) : (
-                    <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: .5, opacity: .85, textAlign: "center", lineHeight: 1.15 }}>{slot.label}</span>
+                    <span style={{ fontSize: wide ? 10 : 11, fontWeight: 700, letterSpacing: .5, opacity: .85, textAlign: "center", lineHeight: 1.15 }}>{labelOf(sid)}</span>
                   )}
                 </button>
               );
@@ -256,7 +271,7 @@ function Chip({ player, mins, selected, onTap }) {
     <button onClick={onTap} className="chip" style={{
       border: selected ? `3px solid ${C.amber}` : `2px solid ${C.ink}`, background: C.ink, color: C.chalk, borderRadius: 10,
       padding: "6px 10px", minWidth: 72, display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-      <span style={{ fontFamily: font.display, fontWeight: 800, fontSize: 26, lineHeight: 1, color: C.amber }}>{player.number}</span>
+      <span style={{ fontFamily: font.display, fontWeight: 400, fontSize: 26, lineHeight: 1, color: C.amber }}>{player.number}</span>
       <span style={{ fontSize: 12, fontWeight: 600 }}>{player.name || "—"}</span>
       <span style={{ fontSize: 10, opacity: .7 }}>{Math.floor(mins / 60)}′</span>
     </button>
