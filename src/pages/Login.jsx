@@ -4,28 +4,26 @@ import { C, inp, sBtn } from "../theme";
 
 export default function Login() {
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const send = async () => {
-    setErr("");
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
-    if (error) setErr(error.message); else setSent(true);
+  const signIn = async () => {
+    setErr(""); setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) setErr(error.message === "Invalid login credentials" ? "Email or password didn't match." : error.message);
   };
 
   return (
-    <div style={{ padding: "24px 14px" }}>
-      <p style={{ fontSize: 14, color: C.slate, marginTop: 0 }}>Coaches sign in with an email link. No password.</p>
-      {sent ? (
-        <p style={{ fontSize: 15 }}>Link sent to <b>{email}</b>. Open it on this phone.</p>
-      ) : (
-        <div style={{ display: "flex", gap: 8 }}>
-          <input style={{ ...inp, flex: 1 }} type="email" inputMode="email" placeholder="you@example.com"
-            value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} />
-          <button style={{ ...sBtn, background: C.ink, color: C.chalk }} onClick={send}>Send link</button>
-        </div>
-      )}
-      {err && <p style={{ color: C.red, fontSize: 13 }}>{err}</p>}
+    <div style={{ padding: "24px 14px", display: "grid", gap: 8 }}>
+      <p style={{ fontSize: 14, color: C.slate, margin: 0 }}>Coach sign-in.</p>
+      <input style={inp} type="email" inputMode="email" autoComplete="username" placeholder="Email"
+        value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input style={inp} type="password" autoComplete="current-password" placeholder="Password"
+        value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && signIn()} />
+      <button style={{ ...sBtn, background: C.ink, color: C.chalk, opacity: busy ? .6 : 1 }} disabled={busy} onClick={signIn}>Sign in</button>
+      {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
     </div>
   );
 }
