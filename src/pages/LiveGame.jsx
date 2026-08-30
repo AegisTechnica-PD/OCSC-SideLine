@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { FORMATIONS, DEFAULT_FORMATION, slotsFor, labelOf, mmss, minuteOf, clockSeconds, lineupFromEvents, minutesFromEvents } from "../lib/game";
-import { C, font, sBtn } from "../theme";
+import { C, font, sBtn, swatch } from "../theme";
 
 export default function LiveGame() {
   const { id } = useParams();
@@ -249,7 +249,10 @@ function Pitch({ rows, lineup, byId, mins, selected, onSlot, highlight }) {
                   background: pid ? "#27272C" : "rgba(250,250,248,.05)", color: C.ink, borderRadius: 10,
                   padding: wide ? "6px 2px 5px" : "6px 4px 5px", minHeight: 64, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
                   {p ? (<>
-                    <span style={{ fontFamily: font.display, fontWeight: 400, fontSize: wide ? 26 : 30, lineHeight: 1, color: C.amber }}>{p.number}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontFamily: font.display, fontWeight: 400, fontSize: wide ? 26 : 30, lineHeight: 1, color: C.amber }}>{p.number}</span>
+                      {swatch(p.headband) && <span title={p.headband} style={{ width: 10, height: 10, borderRadius: 5, background: swatch(p.headband), border: "1px solid rgba(250,250,248,.5)" }} />}
+                    </span>
                     <span style={{ fontSize: wide ? 11 : 12, fontWeight: 700, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name || "—"}</span>
                     <span style={{ fontSize: 10, opacity: .7 }}>{Math.floor((mins[pid] || 0) / 60)}′</span>
                     <span style={{ fontSize: wide ? 8 : 9, letterSpacing: .5, opacity: .6, marginTop: 2, textAlign: "center", lineHeight: 1.1 }}>{labelOf(sid).toUpperCase()}</span>
@@ -271,7 +274,10 @@ function Chip({ player, mins, selected, onTap }) {
     <button onClick={onTap} className="chip" style={{
       border: selected ? `3px solid ${C.amber}` : `2px solid ${C.ink}`, background: C.ink, color: C.chalk, borderRadius: 10,
       padding: "6px 10px", minWidth: 72, display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-      <span style={{ fontFamily: font.display, fontWeight: 400, fontSize: 26, lineHeight: 1, color: C.amber }}>{player.number}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ fontFamily: font.display, fontWeight: 400, fontSize: 26, lineHeight: 1, color: C.amber }}>{player.number}</span>
+        {swatch(player.headband) && <span title={player.headband} style={{ width: 10, height: 10, borderRadius: 5, background: swatch(player.headband), border: "1px solid rgba(0,0,0,.35)" }} />}
+      </span>
       <span style={{ fontSize: 12, fontWeight: 600 }}>{player.name || "—"}</span>
       <span style={{ fontSize: 10, opacity: .7 }}>{Math.floor(mins / 60)}′</span>
     </button>

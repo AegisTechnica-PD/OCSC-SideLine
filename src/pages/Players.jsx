@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { seasonTotals, mmss } from "../lib/game";
-import { C, font, inp, sBtn, h2 } from "../theme";
+import { C, font, inp, sBtn, h2, swatch } from "../theme";
 
 export default function Players() {
   const [players, setPlayers] = useState([]);
@@ -34,12 +34,16 @@ export default function Players() {
   return (
     <div style={{ padding: "0 14px 32px" }}>
       <div style={h2}>ROSTER</div>
-      <p style={{ fontSize: 13, color: C.slate, margin: "0 0 10px" }}>Edits save as you type. Untick Active to keep a player's history but hide her from the bench.</p>
+      <p style={{ fontSize: 13, color: C.slate, margin: "0 0 10px" }}>Edits save as you type. Headband is the color used to ID her on video — use plain names like <i>neon yellow</i> or <i>royal blue</i> and a swatch appears. Untick Active to keep history but hide her from the bench.</p>
       {players.map((p) => (
         <div key={p.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", opacity: p.active ? 1 : .5 }}>
           <input value={p.number} inputMode="numeric" onChange={(e) => save(p, { number: e.target.value })}
             style={{ ...inp, width: 58, textAlign: "center", fontFamily: font.display, fontWeight: 400, fontSize: 20 }} />
           <input value={p.name} placeholder="Name" onChange={(e) => save(p, { name: e.target.value })} style={{ ...inp, flex: 1 }} />
+          <span style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
+            <span aria-hidden style={{ width: 14, height: 14, borderRadius: 7, flex: "none", background: swatch(p.headband) || "transparent", border: `1.5px solid ${swatch(p.headband) ? "rgba(250,250,248,.5)" : C.mist}` }} />
+            <input value={p.headband || ""} placeholder="Headband" onChange={(e) => save(p, { headband: e.target.value })} style={{ ...inp, width: "100%", minWidth: 0 }} />
+          </span>
           <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
             <input type="checkbox" checked={p.active} onChange={(e) => save(p, { active: e.target.checked })} /> Active
           </label>
