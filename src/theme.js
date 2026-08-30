@@ -10,8 +10,8 @@ export const C = {
   mist: "rgba(250,250,248,0.22)",    // borders
   amber: "#E01F2D",                  // accent: numbers, GOAL, selection
   red: "#E01F2D",                    // danger
-  grass: "#151518",                  // pitch
-  grassDeep: "#101013",
+  grass: "#2E6B3B",                  // pitch
+  grassDeep: "#24552F",
   win: "#4CC26B",
 };
 export const font = {

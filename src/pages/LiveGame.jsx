@@ -228,7 +228,7 @@ export default function LiveGame() {
 }
 
 function Pitch({ rows, lineup, byId, mins, selected, onSlot, highlight }) {
-  const line = "2px solid rgba(250,250,248,.28)";
+  const line = "2px solid rgba(250,250,248,.6)";
   return (
     <div style={{ margin: "0 10px", background: C.grass, borderRadius: 12, padding: "14px 8px 10px", position: "relative", border: `1px solid ${C.mist}`,
       backgroundImage: `repeating-linear-gradient(0deg, ${C.grass} 0 20%, ${C.grassDeep} 20% 40%)` }}>
@@ -245,8 +245,8 @@ function Pitch({ rows, lineup, byId, mins, selected, onSlot, highlight }) {
               return (
                 <button key={sid} onClick={() => onSlot(sid)} className="chip" style={{
                   flex: `0 1 ${row.length === 1 ? 33 : row.length === 2 ? 40 : 100 / row.length}%`, minWidth: 0,
-                  border: pid && selected === pid ? `3px solid ${C.amber}` : highlight && pid ? `2px solid ${C.amber}` : pid ? "2px solid rgba(250,250,248,.18)" : "2px dashed rgba(250,250,248,.35)",
-                  background: pid ? "#27272C" : "rgba(250,250,248,.05)", color: C.ink, borderRadius: 10,
+                  border: pid && selected === pid ? `3px solid ${C.amber}` : highlight && pid ? `2px solid ${C.amber}` : pid ? "2px solid rgba(250,250,248,.25)" : "2px dashed rgba(250,250,248,.55)",
+                  background: pid ? "rgba(12,12,14,.82)" : "rgba(12,12,14,.22)", color: C.ink, borderRadius: 10,
                   padding: wide ? "6px 2px 5px" : "6px 4px 5px", minHeight: 64, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
                   {p ? (<>
                     <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
