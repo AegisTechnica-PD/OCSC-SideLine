@@ -7,6 +7,8 @@ export default function Players() {
   const [players, setPlayers] = useState([]);
   const [totals, setTotals] = useState({});
   const [draft, setDraft] = useState({ number: "", name: "" });
+  const [resetText, setResetText] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const load = async () => {
     const [{ data: p }, { data: g }, { data: e }] = await Promise.all([
@@ -74,6 +76,29 @@ export default function Players() {
           ); })}
         </tbody>
       </table>
+
+      <div style={{ ...h2, color: C.red, marginTop: 28 }}>SEASON RESET</div>
+      <p style={{ fontSize: 13, color: C.slate, margin: "0 0 8px" }}>
+        Deletes every game, all minutes and events, and all homework results. Roster, numbers, and headbands are kept. Cannot be undone.
+      </p>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input value={resetText} onChange={(e) => setResetText(e.target.value)} placeholder='Type RESET to enable' style={{ ...inp, flex: 1 }} />
+        <button disabled={resetText !== "RESET" || resetting} onClick={seasonReset}
+          style={{ ...sBtn, background: resetText === "RESET" ? C.red : "transparent", color: C.ink, border: `1.5px solid ${C.red}`, opacity: resetText === "RESET" ? 1 : .5 }}>
+          {resetting ? "Clearing…" : "Reset season"}
+        </button>
+      </div>
     </div>
   );
+
+  async function seasonReset() {
+    if (!confirm("Last chance: wipe all games and homework results?")) return;
+    setResetting(true);
+    const g = await supabase.from("games").delete().not("id", "is", null);
+    const h = await supabase.from("smarts_sessions").delete().not("id", "is", null);
+    setResetting(false); setResetText("");
+    if (g.error || h.error) { alert(`Reset failed: ${(g.error || h.error).message}`); return; }
+    alert("Season reset. Games and homework are cleared.");
+    load();
+  }
 }
