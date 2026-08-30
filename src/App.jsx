@@ -9,9 +9,19 @@ import GameDetail from "./pages/GameDetail.jsx";
 import Players from "./pages/Players.jsx";
 import SoccerSmarts from "./pages/SoccerSmarts.jsx";
 import Homework from "./pages/Homework.jsx";
+import { SeasonCtx } from "./lib/season";
 
 export default function App() {
   const [session, setSession] = useState(undefined);
+  const [seasons, setSeasons] = useState([]);
+  const [seasonId, setSeasonId] = useState(null);
+  const reloadSeasons = async () => {
+    const { data } = await supabase.from("seasons").select("*").order("started_on", { ascending: false });
+    setSeasons(data || []);
+    setSeasonId((cur) => (data || []).some((s) => s.id === cur) ? cur : (data || []).find((s) => s.active)?.id || null);
+  };
+  useEffect(() => { if (session) reloadSeasons(); }, [session]);
+  const season = seasons.find((s) => s.id === seasonId) || null;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -24,11 +34,18 @@ export default function App() {
   if (session === undefined) return null;
 
   return (
+    <SeasonCtx.Provider value={{ seasons, season, setSeasonId, reload: reloadSeasons }}>
     <div style={{ maxWidth: 520, margin: "0 auto", minHeight: "100vh" }}>
       <header style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "12px 14px 8px", background: C.chalk }}>
         <div style={{ fontFamily: font.display, fontWeight: 400, fontSize: 24, letterSpacing: 1, lineHeight: 1 }}>
           <span style={{ color: C.amber }}>OCSC</span><span style={{ color: C.slate }}> · SIDELINE</span>
         </div>
+        {session && seasons.length > 1 && (
+          <select value={seasonId || ""} onChange={(e) => setSeasonId(e.target.value)} aria-label="Season"
+            style={{ background: "#0C0C0E", color: C.ink, border: `1.5px solid rgba(250,250,248,.22)`, borderRadius: 6, padding: "4px 6px", fontSize: 12, fontWeight: 800 }}>
+            {seasons.map((s) => <option key={s.id} value={s.id}>{s.name}{s.active ? "" : " (archived)"}</option>)}
+          </select>
+        )}
         {session && (
           <nav style={{ marginLeft: "auto", display: "flex", gap: 2, whiteSpace: "nowrap" }}>
             {[["/games", "Games"], ["/players", "Players"], ["/homework", "Homework"]].map(([to, label]) => (
@@ -61,5 +78,6 @@ export default function App() {
         )}
       </Routes>
     </div>
+    </SeasonCtx.Provider>
   );
 }

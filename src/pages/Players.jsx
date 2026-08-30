@@ -2,25 +2,29 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { seasonTotals, mmss } from "../lib/game";
 import { C, font, inp, sBtn, h2, swatch } from "../theme";
+import { useSeason } from "../lib/season";
 
 export default function Players() {
   const [players, setPlayers] = useState([]);
   const [totals, setTotals] = useState({});
   const [draft, setDraft] = useState({ number: "", name: "" });
-  const [resetText, setResetText] = useState("");
-  const [resetting, setResetting] = useState(false);
+  const { season, reload } = useSeason();
+  const [newName, setNewName] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const load = async () => {
-    const [{ data: p }, { data: g }, { data: e }] = await Promise.all([
+    if (!season) return;
+    const [{ data: p }, { data: g }] = await Promise.all([
       supabase.from("players").select("*").order("number"),
-      supabase.from("games").select("*"),
-      supabase.from("game_events").select("*"),
+      supabase.from("games").select("*").eq("season_id", season.id),
     ]);
+    const ids = (g || []).map((x) => x.id);
+    const { data: e } = ids.length ? await supabase.from("game_events").select("*").in("game_id", ids) : { data: [] };
     const ps = (p || []).sort((a, b) => Number(a.number) - Number(b.number));
     setPlayers(ps);
     setTotals(seasonTotals(ps, g || [], e || []));
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [season?.id]);
 
   const save = async (p, patch) => {
     setPlayers((ps) => ps.map((x) => (x.id === p.id ? { ...x, ...patch } : x)));
@@ -58,7 +62,7 @@ export default function Players() {
         <button onClick={add} style={sBtn}>Add</button>
       </div>
 
-      <div style={h2}>SEASON</div>
+      <div style={h2}>SEASON{season ? ` · ${season.name.toUpperCase()}` : ""}</div>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
         <thead>
           <tr style={{ color: C.slate, fontSize: 11, letterSpacing: 1, textAlign: "right" }}>
@@ -77,28 +81,32 @@ export default function Players() {
         </tbody>
       </table>
 
-      <div style={{ ...h2, color: C.red, marginTop: 28 }}>SEASON RESET</div>
+      <div style={{ ...h2, marginTop: 28 }}>START A NEW SEASON</div>
       <p style={{ fontSize: 13, color: C.slate, margin: "0 0 8px" }}>
-        Deletes every game, all minutes and events, and all homework results. Roster, numbers, and headbands are kept. Cannot be undone.
+        Archives the current season — every game, minute, and homework result stays viewable from the season picker — and starts a fresh one at zero. Roster, numbers, and headbands carry over.
       </p>
       <div style={{ display: "flex", gap: 8 }}>
-        <input value={resetText} onChange={(e) => setResetText(e.target.value)} placeholder='Type RESET to enable' style={{ ...inp, flex: 1 }} />
-        <button disabled={resetText !== "RESET" || resetting} onClick={seasonReset}
-          style={{ ...sBtn, background: resetText === "RESET" ? C.red : "transparent", color: C.ink, border: `1.5px solid ${C.red}`, opacity: resetText === "RESET" ? 1 : .5 }}>
-          {resetting ? "Clearing…" : "Reset season"}
+        <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="New season name, e.g. Spring 2027" style={{ ...inp, flex: 1 }} />
+        <button disabled={!newName.trim() || busy} onClick={startSeason}
+          style={{ ...sBtn, background: newName.trim() ? C.ink : "transparent", color: newName.trim() ? C.chalk : C.ink, opacity: newName.trim() ? 1 : .5 }}>
+          {busy ? "Starting…" : "Start season"}
         </button>
       </div>
+      {season && !season.active && (
+        <p style={{ fontSize: 13, color: C.amber, margin: "10px 0 0" }}>You're viewing an archived season. Switch to the active one in the header to start a new one.</p>
+      )}
     </div>
   );
 
-  async function seasonReset() {
-    if (!confirm("Last chance: wipe all games and homework results?")) return;
-    setResetting(true);
-    const g = await supabase.from("games").delete().not("id", "is", null);
-    const h = await supabase.from("smarts_sessions").delete().not("id", "is", null);
-    setResetting(false); setResetText("");
-    if (g.error || h.error) { alert(`Reset failed: ${(g.error || h.error).message}`); return; }
-    alert("Season reset. Games and homework are cleared.");
-    load();
+  async function startSeason() {
+    if (!season?.active) return;
+    if (!confirm(`Archive "${season.name}" and start "${newName.trim()}"?`)) return;
+    setBusy(true);
+    const a = await supabase.from("seasons").update({ active: false, ended_on: new Date().toISOString().slice(0, 10) }).eq("id", season.id);
+    const b = a.error ? a : await supabase.from("seasons").insert({ name: newName.trim(), active: true });
+    setBusy(false);
+    if (b.error) { alert(`Couldn't start season: ${b.error.message}`); return; }
+    setNewName("");
+    await reload();
   }
 }

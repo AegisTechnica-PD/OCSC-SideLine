@@ -1,21 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { C, font, h2, sBtn } from "../theme";
+import { useSeason } from "../lib/season";
 
 export default function Homework() {
   const [players, setPlayers] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [openJersey, setOpenJersey] = useState(null);
+  const { season } = useSeason();
 
   const load = async () => {
+    if (!season) return;
     const [{ data: p }, { data: s }] = await Promise.all([
       supabase.from("players").select("*").eq("active", true),
-      supabase.from("smarts_sessions").select("*").order("created_at", { ascending: false }),
+      supabase.from("smarts_sessions").select("*").eq("season_id", season.id).order("created_at", { ascending: false }),
     ]);
     setPlayers((p || []).sort((a, b) => Number(a.number) - Number(b.number)));
     setSessions(s || []);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [season?.id]);
 
   const weeks = useMemo(() => [...new Set(sessions.map((s) => s.week_epoch))].sort((a, b) => b - a), [sessions]);
   const weekLabel = Object.fromEntries(sessions.map((s) => [s.week_epoch, s.week_label]));

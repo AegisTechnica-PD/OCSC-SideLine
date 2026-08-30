@@ -3,18 +3,21 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { C, font, inp, sBtn, h2 } from "../theme";
 import { FORMATIONS, DEFAULT_FORMATION } from "../lib/game";
+import { useSeason } from "../lib/season";
 
 export default function Games() {
   const [games, setGames] = useState([]);
   const [draft, setDraft] = useState({ opponent: "", played_on: new Date().toISOString().slice(0, 10), home: true, half_length_min: 25, formation: DEFAULT_FORMATION });
   const nav = useNavigate();
+  const { season } = useSeason();
 
   useEffect(() => {
-    supabase.from("games").select("*").order("played_on", { ascending: false }).then(({ data }) => setGames(data || []));
-  }, []);
+    if (!season) return;
+    supabase.from("games").select("*").eq("season_id", season.id).order("played_on", { ascending: false }).then(({ data }) => setGames(data || []));
+  }, [season?.id]);
 
   const create = async () => {
-    const { data, error } = await supabase.from("games").insert(draft).select().single();
+    const { data, error } = await supabase.from("games").insert({ ...draft, season_id: season.id }).select().single();
     if (!error) nav(`/games/${data.id}/live`);
   };
 
@@ -28,6 +31,10 @@ export default function Games() {
 
   return (
     <div style={{ padding: "0 14px 32px" }}>
+      {season && !season.active && (
+        <p style={{ fontSize: 13, color: C.amber, margin: "12px 0 0" }}>Viewing archived season {season.name}. New games go in the active season.</p>
+      )}
+      {season?.active && <>
       <div style={h2}>NEW GAME</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <input style={{ ...inp, gridColumn: "1 / -1" }} placeholder="Opponent" value={draft.opponent} onChange={(e) => setDraft({ ...draft, opponent: e.target.value })} />
@@ -43,6 +50,7 @@ export default function Games() {
         </label>
         <button onClick={create} style={{ ...sBtn, background: C.ink, color: C.chalk }}>Start game</button>
       </div>
+      </>}
 
       {live.length > 0 && <>
         <div style={h2}>IN PROGRESS</div>
