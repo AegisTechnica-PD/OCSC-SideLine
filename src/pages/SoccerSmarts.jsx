@@ -644,7 +644,7 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v14`}
+          {`Week of ${weekLabel()} · 3-4-1 · v15`}
         </div>
       </div>
 
@@ -676,7 +676,7 @@ export default function TacticsTrainer() {
             {jersey.trim() ? "Kick off — this week's 10" : "Enter your number to kick off"}
           </button>
           <p style={{ fontSize: 12, color: C.chalkDim, marginTop: 14, marginBottom: 0, lineHeight: 1.5 }}>
-            This week's 10 homework questions are the same for everyone at your position — a fresh set drops every Friday. When you finish, screenshot your score page and post it in GameChanger before next week's first practice.
+            This week's 10 homework questions are the same for everyone at your position — a fresh set drops every Friday. When you finish, your score goes straight to the coaches. Play before next week's first practice, and replay all you want — your best score is the one that counts.
           </p>
         </div>
       )}
