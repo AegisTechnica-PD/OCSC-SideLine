@@ -3,6 +3,7 @@ import { Routes, Route, NavLink, Navigate, useLocation } from "react-router-dom"
 import { supabase } from "./lib/supabase";
 import { C, font } from "./theme";
 import Login from "./pages/Login.jsx";
+import Landing from "./pages/Landing.jsx";
 import Games from "./pages/Games.jsx";
 import LiveGame from "./pages/LiveGame.jsx";
 import GameDetail from "./pages/GameDetail.jsx";
@@ -64,7 +65,10 @@ export default function App() {
 
       <Routes>
         {!session ? (
-          <Route path="*" element={<Login />} />
+          <>
+            <Route path="/login" element={<Login />} />
+            <Route path="*" element={<Landing />} />
+          </>
         ) : (
           <>
             <Route path="/" element={<Navigate to="/games" replace />} />
