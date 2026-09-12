@@ -620,6 +620,14 @@ export default function TacticsTrainer() {
     }).then(({ error }) => setSaved(error ? "fail" : "ok"));
   }, [screen]);
 
+  function retrySave() {
+    setSaved("saving");
+    supabase.from("smarts_sessions").insert({
+      jersey: jersey.trim(), player_name: name.trim(), position: myPos,
+      week_epoch: weekEpoch(), week_label: weekLabel(), score, best_streak: bestStreak, principles: prStats,
+    }).then(({ error }) => setSaved(error ? "fail" : "ok"));
+  }
+
   const scoreText = `#${jersey.trim() || "?"} ${name.trim() || "Player"} \u2014 ${myPos === "All" ? "All positions" : myPos} \u2014 Week of ${weekLabel()} \u2014 ${score} pts, best streak ${bestStreak} \u2014 ${levelFor(score)}`;
 
   const shell = {
@@ -644,7 +652,7 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v15`}
+          {`Week of ${weekLabel()} · 3-4-1 · v16`}
         </div>
       </div>
 
@@ -676,7 +684,7 @@ export default function TacticsTrainer() {
             {jersey.trim() ? "Kick off — this week's 10" : "Enter your number to kick off"}
           </button>
           <p style={{ fontSize: 12, color: C.chalkDim, marginTop: 14, marginBottom: 0, lineHeight: 1.5 }}>
-            This week's 10 homework questions are the same for everyone at your position — a fresh set drops every Friday. When you finish, your score goes straight to the coaches. Play before next week's first practice, and replay all you want — your best score is the one that counts.
+            This week's 10 homework questions are the same for everyone at your position — a fresh set drops every Friday. When you finish, your score goes straight to the coaches. Play before next week's first practice, and replay all you want — every play adds to your season points.
           </p>
         </div>
       )}
@@ -767,8 +775,12 @@ export default function TacticsTrainer() {
               Homework done? Prove it!
             </div>
             <p style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.5, margin: "0 0 8px" }}>
-              {saved === "ok" ? "✅ Saved — your coaches can see this score." : saved === "fail" ? "📸 Couldn't save. Screenshot this page and post it in GameChanger." : "Saving your score…"}
+              {saved === "ok" ? "✅ Saved — your coaches can see this score." : saved === "fail" ? "⚠️ Couldn't save your score." : "Saving your score…"}
             </p>
+            {saved === "fail" && (<>
+              <button onClick={retrySave} style={{ ...btn(C.volt), marginBottom: 8 }}>Try saving again</button>
+              <p style={{ fontSize: 13, opacity: .8, margin: "0 0 8px" }}>Still stuck? Screenshot this page and post it in GameChanger.</p>
+            </>)}
             <p style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.5, margin: 0, color: C.chalkDim, wordBreak: "break-word" }}>{scoreText}</p>
           </div>
           <button onClick={start} style={{ ...btn("transparent", C.chalk), border: `1.5px solid ${C.line}`, marginTop: 10 }}>

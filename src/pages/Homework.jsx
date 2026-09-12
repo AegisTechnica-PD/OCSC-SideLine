@@ -34,7 +34,8 @@ export default function Homework() {
       const best = r.sessions.reduce((m, s) => Math.max(m, s.score), 0);
       // weekly best = the score that counts for the reward
       const weeklyBest = weeks.map((w) => r.sessions.filter((s) => s.week_epoch === w).reduce((m, s) => Math.max(m, s.score), null));
-      const points = weeklyBest.reduce((a, b) => a + (b || 0), 0);
+      // Points = every play's score added up. Effort counts.
+      const points = r.sessions.reduce((a, x) => a + x.score, 0);
       return { ...r, weeksDone: wk.size, plays: r.sessions.length, best, weeklyBest, points };
     }).sort((a, b) => b.weeksDone - a.weeksDone || b.points - a.points);
   }, [players, sessions, weeks]);
@@ -49,7 +50,7 @@ export default function Homework() {
     <div style={{ padding: "0 14px 32px" }}>
       <div style={h2}>HOMEWORK</div>
       <p style={{ fontSize: 13, color: C.slate, margin: "0 0 10px" }}>
-        {weeks.length} week{weeks.length === 1 ? "" : "s"} recorded. Weeks = distinct homework weeks completed. Points = sum of each week's best score. Tap a row for detail.
+        {weeks.length} week{weeks.length === 1 ? "" : "s"} recorded. Weeks = distinct homework weeks completed. Points = every play's score added together. Tap a row for detail.
       </p>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
         <thead><tr style={{ color: C.slate, fontSize: 11, letterSpacing: 1, textAlign: "right" }}>
