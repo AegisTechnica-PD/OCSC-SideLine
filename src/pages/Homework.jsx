@@ -2,27 +2,37 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { C, font, h2, sBtn, inp } from "../theme";
 import { POSITIONS } from "./SoccerSmarts.jsx";
+import { VIDEO_CLICK_BONUS } from "../lib/game";
 import { useSeason } from "../lib/season";
 
 export default function Homework() {
   const [players, setPlayers] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [videoClicks, setVideoClicks] = useState([]);
   const [openJersey, setOpenJersey] = useState(null);
   const { season } = useSeason();
 
   const load = async () => {
     if (!season) return;
-    const [{ data: p }, { data: s }] = await Promise.all([
+    const [{ data: p }, { data: s }, { data: v }] = await Promise.all([
       supabase.from("players").select("*").eq("active", true),
       supabase.from("smarts_sessions").select("*").eq("season_id", season.id).order("created_at", { ascending: false }),
+      supabase.from("video_clicks").select("*").eq("season_id", season.id),
     ]);
     setPlayers((p || []).sort((a, b) => Number(a.number) - Number(b.number)));
     setSessions(s || []);
+    setVideoClicks(v || []);
   };
   useEffect(() => { load(); }, [season?.id]);
 
   const weeks = useMemo(() => [...new Set(sessions.map((s) => s.week_epoch))].sort((a, b) => b - a), [sessions]);
   const weekLabel = Object.fromEntries(sessions.map((s) => [s.week_epoch, s.week_label]));
+
+  const videosByJersey = useMemo(() => {
+    const out = {};
+    for (const v of videoClicks) out[v.jersey] = (out[v.jersey] || 0) + 1;
+    return out;
+  }, [videoClicks]);
 
   const rows = useMemo(() => {
     const byJersey = {};
@@ -35,11 +45,12 @@ export default function Homework() {
       const best = r.sessions.reduce((m, s) => Math.max(m, s.score), 0);
       // weekly best = the score that counts for the reward
       const weeklyBest = weeks.map((w) => r.sessions.filter((s) => s.week_epoch === w).reduce((m, s) => Math.max(m, s.score), null));
-      // Points = every play's score added up. Effort counts.
-      const points = r.sessions.reduce((a, x) => a + x.score, 0);
-      return { ...r, weeksDone: wk.size, plays: r.sessions.length, best, weeklyBest, points };
+      const videos = videosByJersey[r.jersey] || 0;
+      // Points = every play's score, plus a bonus per distinct video watched.
+      const points = r.sessions.reduce((a, x) => a + x.score, 0) + videos * VIDEO_CLICK_BONUS;
+      return { ...r, weeksDone: wk.size, plays: r.sessions.length, best, weeklyBest, videos, points };
     }).sort((a, b) => b.weeksDone - a.weeksDone || b.points - a.points);
-  }, [players, sessions, weeks]);
+  }, [players, sessions, weeks, videosByJersey]);
 
   const remove = async (id) => {
     if (!confirm("Remove this result?")) return;
@@ -51,11 +62,11 @@ export default function Homework() {
     <div style={{ padding: "0 14px 32px" }}>
       <div style={h2}>HOMEWORK</div>
       <p style={{ fontSize: 13, color: C.slate, margin: "0 0 10px" }}>
-        {weeks.length} week{weeks.length === 1 ? "" : "s"} recorded. Weeks = distinct homework weeks completed. Points = every play's score added together. Tap a row for detail.
+        {weeks.length} week{weeks.length === 1 ? "" : "s"} recorded. Weeks = distinct homework weeks completed. Vids = drill videos she tapped (+{VIDEO_CLICK_BONUS} pts each, once per video per week — a tap isn't proof she watched it, but it's the best signal we have). Points = every play's score plus video bonuses, added together. Tap a row for detail.
       </p>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
         <thead><tr style={{ color: C.slate, fontSize: 11, letterSpacing: 1, textAlign: "right" }}>
-          <th style={{ textAlign: "left", padding: "4px 0" }}>PLAYER</th><th>WEEKS</th><th>PLAYS</th><th>BEST</th><th>POINTS</th></tr></thead>
+          <th style={{ textAlign: "left", padding: "4px 0" }}>PLAYER</th><th>WEEKS</th><th>PLAYS</th><th>BEST</th><th>VIDS</th><th>POINTS</th></tr></thead>
         <tbody>
           {rows.map((r) => (
             <RowBlock key={r.jersey} r={r} open={openJersey === r.jersey} onToggle={() => setOpenJersey(openJersey === r.jersey ? null : r.jersey)}
@@ -126,10 +137,11 @@ function RowBlock({ r, open, onToggle, weeks, weekLabel, onRemove }) {
         <td style={{ fontFamily: font.display, fontWeight: 400, fontSize: 18 }}>{r.weeksDone}<span style={{ color: C.slate, fontSize: 12 }}>/{weeks.length}</span></td>
         <td>{r.plays}</td>
         <td>{r.best || ""}</td>
+        <td>{r.videos || ""}</td>
         <td style={{ fontFamily: font.display, fontWeight: 400, fontSize: 18, color: C.win }}>{r.points || ""}</td>
       </tr>
       {open && (
-        <tr><td colSpan={5} style={{ padding: "0 0 10px" }}>
+        <tr><td colSpan={6} style={{ padding: "0 0 10px" }}>
           {weeks.map((w, i) => (
             <div key={w} style={{ fontSize: 13, padding: "3px 0 3px 12px", color: r.weeklyBest[i] == null ? C.slate : C.ink }}>
               Week of {weekLabel[w]}: {r.weeklyBest[i] == null ? "—" : <b>{r.weeklyBest[i]}</b>}

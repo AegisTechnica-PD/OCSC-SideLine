@@ -30,6 +30,10 @@ export const FORMATIONS = {
 export const DEFAULT_FORMATION = "3-4-1";
 export const slotsFor = (f) => (FORMATIONS[f] || FORMATIONS[DEFAULT_FORMATION]).rows.flat();
 
+// Kept in sync with the bonus computed in supabase/video_credit.sql's
+// public_homework_leaderboard() function.
+export const VIDEO_CLICK_BONUS = 100;
+
 export const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 export const minuteOf = (s) => Math.floor(s / 60) + 1;
 

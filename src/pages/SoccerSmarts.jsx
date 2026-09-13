@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
+import { VIDEO_CLICK_BONUS } from "../lib/game";
 
 // ---------- Theme ----------
 const C = {
@@ -588,6 +589,7 @@ export default function TacticsTrainer() {
   const [saved, setSaved] = useState(null); // null | "saving" | "ok" | "fail"
   const savedFor = useRef(null);
   const [drills, setDrills] = useState([]);
+  const [clicked, setClicked] = useState(() => new Set());
   const [board, setBoard] = useState(null); // null = not loaded yet, [] once fetched
   const [boardErr, setBoardErr] = useState(false);
   const [myPos, setMyPos] = useState("All");
@@ -607,7 +609,7 @@ export default function TacticsTrainer() {
     setRound(buildRound(myPos));
     setIdx(0); setScore(0); setStreak(0); setBestStreak(0);
     setPicked(null); setPrStats({});
-    savedFor.current = null; setSaved(null);
+    savedFor.current = null; setSaved(null); setClicked(new Set());
     setScreen("play");
   }
 
@@ -668,6 +670,11 @@ export default function TacticsTrainer() {
     }).then(({ error }) => setSaved(error ? "fail" : "ok"));
   }
 
+  const creditVideo = (label) => {
+    setClicked((c) => new Set(c).add(label));
+    supabase.from("video_clicks").insert({ jersey: jersey.trim(), week_epoch: weekEpoch(), label }).then(() => {}, () => {});
+  };
+
   const weakestPrinciple = () => {
     const missed = Object.entries(prStats).filter(([, v]) => v.total > 0 && v.right < v.total);
     if (!missed.length) return null;
@@ -699,7 +706,7 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v19`}
+          {`Week of ${weekLabel()} · 3-4-1 · v20`}
         </div>
       </div>
 
@@ -867,9 +874,9 @@ export default function TacticsTrainer() {
                 Drills for {myPos === "All" ? "your team" : myPos}
               </div>
               {drills.map((d) => (
-                <a key={d.id} href={d.url} target="_blank" rel="noreferrer"
+                <a key={d.id} href={d.url} target="_blank" rel="noreferrer" onClick={() => creditVideo(d.title)}
                   style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-                  ▶ {d.title}
+                  ▶ {d.title}{clicked.has(d.title) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
                 </a>
               ))}
             </div>
@@ -880,19 +887,20 @@ export default function TacticsTrainer() {
             const posQ = POS_SEARCH[myPos];
             return (posQ || weak) && (
               <div style={{ marginTop: 16, textAlign: "left" }}>
-                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: C.chalkDim, marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: C.chalkDim, marginBottom: 4 }}>
                   Keep sharpening
                 </div>
+                <div style={{ fontSize: 12, color: C.chalkDim, marginBottom: 8 }}>Tap a video — +{VIDEO_CLICK_BONUS} bonus points, once per video per week.</div>
                 {weak && (
-                  <a href={ytSearch(PRINCIPLE_SEARCH[weak])} target="_blank" rel="noreferrer"
+                  <a href={ytSearch(PRINCIPLE_SEARCH[weak])} target="_blank" rel="noreferrer" onClick={() => creditVideo(`Watch: ${weak}`)}
                     style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-                    ▶ Watch: {weak}
+                    ▶ Watch: {weak}{clicked.has(`Watch: ${weak}`) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
                   </a>
                 )}
                 {posQ && (
-                  <a href={ytSearch(posQ)} target="_blank" rel="noreferrer"
+                  <a href={ytSearch(posQ)} target="_blank" rel="noreferrer" onClick={() => creditVideo(`Watch: ${myPos} basics`)}
                     style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-                    ▶ Watch: {myPos} basics
+                    ▶ Watch: {myPos} basics{clicked.has(`Watch: ${myPos} basics`) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
                   </a>
                 )}
               </div>
