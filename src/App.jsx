@@ -10,6 +10,8 @@ import GameDetail from "./pages/GameDetail.jsx";
 import Players from "./pages/Players.jsx";
 import SoccerSmarts from "./pages/SoccerSmarts.jsx";
 import Homework from "./pages/Homework.jsx";
+import Practices from "./pages/Practices.jsx";
+import Awards from "./pages/Awards.jsx";
 import { SeasonCtx } from "./lib/season";
 
 export default function App() {
@@ -49,7 +51,7 @@ export default function App() {
         )}
         {session && (
           <nav style={{ marginLeft: "auto", display: "flex", gap: 2, whiteSpace: "nowrap" }}>
-            {[["/games", "Games"], ["/players", "Players"], ["/homework", "Homework"]].map(([to, label]) => (
+            {[["/games", "Games"], ["/players", "Players"], ["/homework", "Homework"], ["/practices", "Practices"], ["/awards", "Awards"]].map(([to, label]) => (
               <NavLink key={to} to={to} style={({ isActive }) => ({
                 textDecoration: "none", borderRadius: 6, padding: "6px 8px", fontSize: 13, fontWeight: 600,
                 background: isActive ? C.ink : "transparent", color: isActive ? C.chalk : C.slate })}>
@@ -77,6 +79,8 @@ export default function App() {
             <Route path="/games/:id" element={<GameDetail />} />
             <Route path="/players" element={<Players />} />
             <Route path="/homework" element={<Homework />} />
+            <Route path="/practices" element={<Practices />} />
+            <Route path="/awards" element={<Awards />} />
             <Route path="*" element={<Navigate to="/games" replace />} />
           </>
         )}

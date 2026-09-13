@@ -23,7 +23,7 @@ const FONT_CSS = `
 `;
 
 // ---------- Positions & field layout (3-4-1, 9v9) ----------
-const POSITIONS = ["Goalkeeper", "Left Defender", "Center Defender", "Right Defender", "Defensive Midfielder", "Left Midfielder", "Center Midfielder", "Right Midfielder", "Striker"];
+export const POSITIONS = ["Goalkeeper", "Left Defender", "Center Defender", "Right Defender", "Defensive Midfielder", "Left Midfielder", "Center Midfielder", "Right Midfielder", "Striker"];
 
 // x: 0 (left) to 100 (right), y: 0 (own goal, bottom) to 100 (their goal, top)
 const FIELD_SPOTS = {
@@ -565,6 +565,7 @@ export default function TacticsTrainer() {
   const [jersey, setJersey] = useState("");
   const [saved, setSaved] = useState(null); // null | "saving" | "ok" | "fail"
   const savedFor = useRef(null);
+  const [drills, setDrills] = useState([]);
   const [myPos, setMyPos] = useState("All");
   const [round, setRound] = useState([]);
   const [idx, setIdx] = useState(0);
@@ -620,6 +621,12 @@ export default function TacticsTrainer() {
     }).then(({ error }) => setSaved(error ? "fail" : "ok"));
   }, [screen]);
 
+  useEffect(() => {
+    if (screen !== "done") return;
+    supabase.from("drill_links").select("*").in("position", [myPos, "All"]).order("sort")
+      .then(({ data }) => setDrills(data || []));
+  }, [screen]);
+
   function retrySave() {
     setSaved("saving");
     supabase.from("smarts_sessions").insert({
@@ -652,7 +659,7 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v16`}
+          {`Week of ${weekLabel()} · 3-4-1 · v17`}
         </div>
       </div>
 
@@ -783,6 +790,21 @@ export default function TacticsTrainer() {
             </>)}
             <p style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.5, margin: 0, color: C.chalkDim, wordBreak: "break-word" }}>{scoreText}</p>
           </div>
+
+          {drills.length > 0 && (
+            <div style={{ marginTop: 16, textAlign: "left" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: C.chalkDim, marginBottom: 8 }}>
+                Drills for {myPos === "All" ? "your team" : myPos}
+              </div>
+              {drills.map((d) => (
+                <a key={d.id} href={d.url} target="_blank" rel="noreferrer"
+                  style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
+                  ▶ {d.title}
+                </a>
+              ))}
+            </div>
+          )}
+
           <button onClick={start} style={{ ...btn("transparent", C.chalk), border: `1.5px solid ${C.line}`, marginTop: 10 }}>
             Play again
           </button>

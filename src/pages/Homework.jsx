@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { C, font, h2, sBtn } from "../theme";
+import { C, font, h2, sBtn, inp } from "../theme";
+import { POSITIONS } from "./SoccerSmarts.jsx";
 import { useSeason } from "../lib/season";
 
 export default function Homework() {
@@ -64,6 +65,55 @@ export default function Homework() {
       </table>
       {sessions.length === 0 && <p style={{ fontSize: 13, color: C.slate }}>No homework results yet. Scores appear here as soon as a player finishes a round.</p>}
       <button onClick={load} style={{ ...sBtn, marginTop: 12 }}>Refresh</button>
+
+      <DrillLinks />
+    </div>
+  );
+}
+
+function DrillLinks() {
+  const [links, setLinks] = useState([]);
+  const [draft, setDraft] = useState({ position: "All", title: "", url: "" });
+
+  const load = () => supabase.from("drill_links").select("*").order("position").order("sort")
+    .then(({ data }) => setLinks(data || []));
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
+    if (!draft.title.trim() || !draft.url.trim()) return;
+    await supabase.from("drill_links").insert(draft);
+    setDraft({ position: draft.position, title: "", url: "" });
+    load();
+  };
+  const remove = async (id) => { await supabase.from("drill_links").delete().eq("id", id); setLinks((l) => l.filter((x) => x.id !== id)); };
+
+  const grouped = ["All", ...POSITIONS].map((pos) => ({ pos, items: links.filter((l) => l.position === pos) })).filter((g) => g.items.length);
+
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div style={h2}>DRILL LINKS</div>
+      <p style={{ fontSize: 13, color: C.slate, margin: "0 0 10px" }}>
+        Shown to a player on the Smarts done screen, matched to the position she practiced. "All" shows to everyone.
+      </p>
+      {grouped.map((g) => (
+        <div key={g.pos} style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: C.slate, letterSpacing: 1, margin: "6px 0 4px" }}>{g.pos.toUpperCase()}</div>
+          {g.items.map((l) => (
+            <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, padding: "4px 0" }}>
+              <a href={l.url} target="_blank" rel="noreferrer" style={{ color: C.ink, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.title}</a>
+              <button onClick={() => remove(l.id)} aria-label="Remove drill link" style={{ border: 0, background: "transparent", color: C.slate }}>✕</button>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+        <select value={draft.position} onChange={(e) => setDraft({ ...draft, position: e.target.value })} style={{ ...inp, flex: "1 1 140px" }}>
+          {["All", ...POSITIONS].map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <input value={draft.title} placeholder="Title, e.g. 1v1 defending basics" onChange={(e) => setDraft({ ...draft, title: e.target.value })} style={{ ...inp, flex: "2 1 200px" }} />
+        <input value={draft.url} placeholder="YouTube link" onChange={(e) => setDraft({ ...draft, url: e.target.value })} style={{ ...inp, flex: "2 1 200px" }} />
+        <button onClick={add} style={sBtn}>Add</button>
+      </div>
     </div>
   );
 }
