@@ -47,16 +47,21 @@ export default function Awards() {
   }, [players, sessions, videoClicks]);
 
   const attendancePct = useMemo(() => {
-    const total = practices.length;
-    if (!total) return {};
+    const totalSessions = practices.length + games.length;
+    if (!totalSessions) return {};
+    const gameAttendees = {}; // game_id -> Set(player_id) — anyone who got any pitch time
+    for (const e of events) {
+      if (e.type !== "on") continue;
+      (gameAttendees[e.game_id] ||= new Set()).add(e.player_id);
+    }
     const out = {};
     for (const p of players) {
-      const rows = attendance.filter((a) => a.player_id === p.id);
-      const present = rows.filter((a) => a.present).length;
-      out[p.id] = total ? Math.round((present / total) * 100) : 0;
+      const presentPractices = attendance.filter((a) => a.player_id === p.id && a.present).length;
+      const presentGames = games.filter((g) => gameAttendees[g.id]?.has(p.id)).length;
+      out[p.id] = Math.round(((presentPractices + presentGames) / totalSessions) * 100);
     }
     return out;
-  }, [players, attendance, practices]);
+  }, [players, attendance, practices, games, events]);
 
   const leaderboard = (getVal, min = 1, limit = 3) => players
     .map((p) => ({ p, v: getVal(p) }))
@@ -71,7 +76,7 @@ export default function Awards() {
     { title: "Iron Woman", sub: "most outfield minutes — goalkeeper time doesn't count", rows: leaderboard((p) => totals[p.id]?.outfieldSeconds || 0), fmt: (v) => mmss(v) },
     { title: "Between the Posts", sub: "most minutes in goal", rows: leaderboard((p) => (totals[p.id]?.seconds || 0) - (totals[p.id]?.outfieldSeconds || 0)), fmt: (v) => mmss(v) },
     { title: "Homework Hero", sub: "most homework points", rows: leaderboard((p) => hwPoints[p.id] || 0), fmt: (v) => `${v} pts` },
-    { title: "Ever Present", sub: "practice attendance, whole roster", rows: leaderboard((p) => attendancePct[p.id] || 0, practices.length ? 0 : 999, players.length), fmt: (v) => `${v}%` },
+    { title: "Ever Present", sub: "practices + games attended, whole roster", rows: leaderboard((p) => attendancePct[p.id] || 0, (practices.length + games.length) ? 0 : 999, players.length), fmt: (v) => `${v}%` },
   ].filter((c) => c.rows.length);
 
   const addAward = async () => {
@@ -86,7 +91,7 @@ export default function Awards() {
     <div style={{ padding: "0 14px 32px" }}>
       <div style={h2}>SEASON AWARDS{season ? ` · ${season.name.toUpperCase()}` : ""}</div>
       <p style={{ fontSize: 13, color: C.slate, margin: "0 0 10px" }}>
-        Auto leaderboards from this season's games, homework, and practice attendance — ties show more than one name. Add your own picks below for anything a stat can't capture.
+        Auto leaderboards from this season's games, homework, and attendance — ties show more than one name. Ever Present counts practices plus any game she got on the pitch for at all, even a minute; a game she attended but never played in won't count since there's no separate check-in for that yet. Add your own picks below for anything a stat can't capture.
       </p>
 
       {categories.length === 0 && <p style={{ fontSize: 13, color: C.slate }}>Not enough recorded yet to show leaders.</p>}
