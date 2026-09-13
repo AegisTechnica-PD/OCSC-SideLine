@@ -46,27 +46,27 @@ const PRINCIPLES = {
   "Attack the Gap Fast": { color: "#FF6B75" },
 };
 
-// ---------- Auto-generated drill search terms ----------
-// No fixed links to go stale — a fresh YouTube search built from the
-// actual topic, so it always matches what she just practiced.
-const POS_SEARCH = {
-  "Goalkeeper": "youth soccer goalkeeper positioning and distribution drill",
-  "Left Defender": "youth soccer outside back 1v1 defending drill",
-  "Center Defender": "youth soccer center back defending drill",
-  "Right Defender": "youth soccer outside back 1v1 defending drill",
-  "Defensive Midfielder": "youth soccer defensive midfielder positioning drill",
-  "Left Midfielder": "youth soccer wide midfielder dribbling drill",
-  "Center Midfielder": "youth soccer central midfielder passing drill",
-  "Right Midfielder": "youth soccer wide midfielder dribbling drill",
-  "Striker": "youth soccer striker finishing and movement drill",
+// ---------- Curated drill videos ----------
+// Real YouTube videos, one per position and one per principle, picked from
+// established youth-coaching channels. Update these if a link ever goes dead.
+const POS_VIDEO = {
+  "Goalkeeper": { url: "https://www.youtube.com/watch?v=BHsPdQ7EnZM", title: "Goalkeeper drills for kids" },
+  "Left Defender": { url: "https://www.youtube.com/watch?v=MDF6tB5foI0", title: "Defending drills for kids" },
+  "Center Defender": { url: "https://www.youtube.com/watch?v=LR9ifmPXGhI", title: "3 drills to be a better defender" },
+  "Right Defender": { url: "https://www.youtube.com/watch?v=MDF6tB5foI0", title: "Defending drills for kids" },
+  "Defensive Midfielder": { url: "https://www.youtube.com/watch?v=673p5aPHSxQ", title: "Defensive midfield positioning" },
+  "Left Midfielder": { url: "https://www.youtube.com/watch?v=eD2T5GXeaYE", title: "Dribbling drills for kids" },
+  "Center Midfielder": { url: "https://www.youtube.com/watch?v=InS1CPYQus8", title: "Essentials of central midfield" },
+  "Right Midfielder": { url: "https://www.youtube.com/watch?v=eD2T5GXeaYE", title: "Dribbling drills for kids" },
+  "Striker": { url: "https://www.youtube.com/watch?v=xSe0kmfaXQg", title: "Shooting drills for youth players" },
 };
-const PRINCIPLE_SEARCH = {
-  "Stay Connected": "youth soccer defensive shape staying compact drill",
-  "Win It Back Together": "youth soccer counter press winning the ball back drill",
-  "Play Out Calmly": "youth soccer playing out from the back drill",
-  "Attack the Gap Fast": "youth soccer quick transition attack drill",
+const PRINCIPLE_VIDEO = {
+  "Stay Connected": { url: "https://www.youtube.com/watch?v=B7B-BLDzAdc", title: "Defensive shape drill" },
+  "Win It Back Together": { url: "https://www.youtube.com/watch?v=IHeUKdsVHHg", title: "Press & cover as a team" },
+  "Play Out Calmly": { url: "https://www.youtube.com/watch?v=BjZ6oNk9Dnw", title: "Build out from the back" },
+  "Attack the Gap Fast": { url: "https://www.youtube.com/watch?v=3PHWnMKmqUM", title: "Quick counter-attack drill" },
 };
-const ytSearch = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+
 
 // ---------- Question bank ----------
 // pos: whose scenario this is ("Team" = everyone)
@@ -884,23 +884,24 @@ export default function TacticsTrainer() {
 
           {(() => {
             const weak = weakestPrinciple();
-            const posQ = POS_SEARCH[myPos];
-            return (posQ || weak) && (
+            const posVid = POS_VIDEO[myPos];
+            const prVid = weak ? PRINCIPLE_VIDEO[weak] : null;
+            return (posVid || prVid) && (
               <div style={{ marginTop: 16, textAlign: "left" }}>
                 <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: C.chalkDim, marginBottom: 4 }}>
                   Keep sharpening
                 </div>
                 <div style={{ fontSize: 12, color: C.chalkDim, marginBottom: 8 }}>Tap a video — +{VIDEO_CLICK_BONUS} bonus points, once per video per week.</div>
-                {weak && (
-                  <a href={ytSearch(PRINCIPLE_SEARCH[weak])} target="_blank" rel="noreferrer" onClick={() => creditVideo(`Watch: ${weak}`)}
+                {prVid && (
+                  <a href={prVid.url} target="_blank" rel="noreferrer" onClick={() => creditVideo(`Watch: ${weak}`)}
                     style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-                    ▶ Watch: {weak}{clicked.has(`Watch: ${weak}`) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
+                    ▶ {prVid.title} ({weak}){clicked.has(`Watch: ${weak}`) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
                   </a>
                 )}
-                {posQ && (
-                  <a href={ytSearch(posQ)} target="_blank" rel="noreferrer" onClick={() => creditVideo(`Watch: ${myPos} basics`)}
+                {posVid && (
+                  <a href={posVid.url} target="_blank" rel="noreferrer" onClick={() => creditVideo(`Watch: ${myPos} basics`)}
                     style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-                    ▶ Watch: {myPos} basics{clicked.has(`Watch: ${myPos} basics`) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
+                    ▶ {posVid.title}{clicked.has(`Watch: ${myPos} basics`) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
                   </a>
                 )}
               </div>
