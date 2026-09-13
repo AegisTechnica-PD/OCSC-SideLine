@@ -566,6 +566,8 @@ export default function TacticsTrainer() {
   const [saved, setSaved] = useState(null); // null | "saving" | "ok" | "fail"
   const savedFor = useRef(null);
   const [drills, setDrills] = useState([]);
+  const [board, setBoard] = useState(null); // null = not loaded yet, [] once fetched
+  const [boardErr, setBoardErr] = useState(false);
   const [myPos, setMyPos] = useState("All");
   const [round, setRound] = useState([]);
   const [idx, setIdx] = useState(0);
@@ -627,6 +629,15 @@ export default function TacticsTrainer() {
       .then(({ data }) => setDrills(data || []));
   }, [screen]);
 
+  useEffect(() => {
+    if (screen !== "board") return;
+    setBoardErr(false);
+    supabase.rpc("public_homework_leaderboard").then(({ data, error }) => {
+      if (error) { setBoardErr(true); return; }
+      setBoard(data || []);
+    });
+  }, [screen]);
+
   function retrySave() {
     setSaved("saving");
     supabase.from("smarts_sessions").insert({
@@ -659,7 +670,7 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v17`}
+          {`Week of ${weekLabel()} · 3-4-1 · v18`}
         </div>
       </div>
 
@@ -693,6 +704,36 @@ export default function TacticsTrainer() {
           <p style={{ fontSize: 12, color: C.chalkDim, marginTop: 14, marginBottom: 0, lineHeight: 1.5 }}>
             This week's 10 homework questions are the same for everyone at your position — a fresh set drops every Friday. When you finish, your score goes straight to the coaches. Play before next week's first practice, and replay all you want — every play adds to your season points.
           </p>
+          <button onClick={() => setScreen("board")} style={{ ...btn("transparent", C.chalk), border: `1.5px solid ${C.line}`, marginTop: 12 }}>
+            🏆 Leaderboard
+          </button>
+        </div>
+      )}
+
+      {screen === "board" && (
+        <div style={card}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ ...display, fontSize: 20 }}>🏆 Leaderboard</div>
+            <button onClick={() => setScreen("home")} style={{ marginLeft: "auto", background: "transparent", border: 0, color: C.chalkDim, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Back</button>
+          </div>
+          {boardErr && <p style={{ fontSize: 14, color: C.chalkDim }}>Couldn't load the leaderboard. Try again in a bit.</p>}
+          {!boardErr && board === null && <p style={{ fontSize: 14, color: C.chalkDim }}>Loading…</p>}
+          {!boardErr && board && board.length === 0 && <p style={{ fontSize: 14, color: C.chalkDim }}>No scores yet this season — be the first!</p>}
+          {!boardErr && board && board.length > 0 && (
+            <div>
+              <div style={{ display: "flex", fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.chalkDim, textTransform: "uppercase", padding: "0 0 6px", borderBottom: `1.5px solid ${C.line}` }}>
+                <span style={{ flex: 1 }}>Player</span><span style={{ width: 46, textAlign: "right" }}>Wks</span><span style={{ width: 46, textAlign: "right" }}>Best</span><span style={{ width: 60, textAlign: "right" }}>Points</span>
+              </div>
+              {board.map((r, i) => (
+                <div key={r.jersey} style={{ display: "flex", alignItems: "center", fontSize: 14, padding: "8px 0", borderBottom: `1px solid ${C.line}`, fontWeight: r.jersey === jersey.trim() ? 800 : 700, color: r.jersey === jersey.trim() ? C.volt : C.chalk }}>
+                  <span style={{ flex: 1 }}>{i < 3 ? ["🥇", "🥈", "🥉"][i] + " " : `${i + 1}. `}#{r.jersey} {r.display_name}</span>
+                  <span style={{ width: 46, textAlign: "right" }}>{r.weeks}</span>
+                  <span style={{ width: 46, textAlign: "right" }}>{r.best}</span>
+                  <span style={{ width: 60, textAlign: "right" }}>{r.points}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
