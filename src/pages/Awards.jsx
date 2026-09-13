@@ -55,11 +55,11 @@ export default function Awards() {
     return out;
   }, [players, attendance, practices]);
 
-  const leaderboard = (getVal, min = 1, limit = 3) => players
+  const leaderboard = (getVal, min = 1) => players
     .map((p) => ({ p, v: getVal(p) }))
     .filter((r) => r.v >= min)
     .sort((a, b) => b.v - a.v)
-    .slice(0, limit);
+    .slice(0, 3);
 
   const categories = [
     { title: "Golden Boot", sub: "most goals", rows: leaderboard((p) => totals[p.id]?.goals || 0), fmt: (v) => `${v} goal${v === 1 ? "" : "s"}` },
@@ -68,7 +68,7 @@ export default function Awards() {
     { title: "Iron Woman", sub: "most outfield minutes — goalkeeper time doesn't count", rows: leaderboard((p) => totals[p.id]?.outfieldSeconds || 0), fmt: (v) => mmss(v) },
     { title: "Between the Posts", sub: "most minutes in goal", rows: leaderboard((p) => (totals[p.id]?.seconds || 0) - (totals[p.id]?.outfieldSeconds || 0)), fmt: (v) => mmss(v) },
     { title: "Homework Hero", sub: "most homework points", rows: leaderboard((p) => hwPoints[p.id] || 0), fmt: (v) => `${v} pts` },
-    { title: "Ever Present", sub: "practice attendance, whole roster", rows: leaderboard((p) => attendancePct[p.id] || 0, practices.length ? 0 : 999, players.length), fmt: (v) => `${v}%` },
+    { title: "Ever Present", sub: "best practice attendance", rows: leaderboard((p) => attendancePct[p.id] || 0, practices.length ? 1 : 999), fmt: (v) => `${v}%` },
   ].filter((c) => c.rows.length);
 
   const addAward = async () => {
@@ -93,7 +93,7 @@ export default function Awards() {
           <div style={{ fontSize: 12, color: C.slate, marginBottom: 6 }}>{c.sub}</div>
           {c.rows.map((r, i) => (
             <div key={r.p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "2px 0" }}>
-              <span>{c.rows.length <= 3 ? (i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉") : `${i + 1}.`} #{r.p.number} {r.p.name}</span>
+              <span>{i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"} #{r.p.number} {r.p.name}</span>
               <span style={{ fontWeight: 700 }}>{c.fmt(r.v)}</span>
             </div>
           ))}

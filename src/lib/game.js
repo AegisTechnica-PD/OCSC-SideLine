@@ -85,11 +85,45 @@ export function minutesFromEvents(events, nowSeconds) {
   return total;
 }
 
+/** Seconds per player per slot they occupied, given events and the current clock.
+ *  Lets a caller separate, say, goalkeeper time from outfield time — a keeper
+ *  who plays every minute in goal shouldn't be compared to outfield players
+ *  on total minutes alone. */
+export function slotSecondsFromEvents(events, nowSeconds) {
+  const cur = {}; // playerId -> { slot, since }
+  const out = {}; // playerId -> { total, bySlot: { slotId: seconds } }
+  const flush = (pid, end) => {
+    const c = cur[pid];
+    if (!c) return;
+    const dur = Math.max(0, end - c.since);
+    out[pid] ||= { total: 0, bySlot: {} };
+    out[pid].total += dur;
+    out[pid].bySlot[c.slot] = (out[pid].bySlot[c.slot] || 0) + dur;
+  };
+  const sorted = [...events]
+    .filter((e) => ["on", "off", "move", "final"].includes(e.type))
+    .sort((a, b) => a.second - b.second || a.id - b.id);
+  for (const e of sorted) {
+    if (e.type === "on" || e.type === "move") {
+      if (cur[e.player_id]) flush(e.player_id, e.second);
+      cur[e.player_id] = { slot: e.position, since: e.second };
+    } else if (e.type === "off") {
+      flush(e.player_id, e.second);
+      delete cur[e.player_id];
+    } else if (e.type === "final") {
+      for (const pid of Object.keys(cur)) flush(pid, e.second);
+      for (const pid of Object.keys(cur)) delete cur[pid];
+    }
+  }
+  for (const pid of Object.keys(cur)) flush(pid, nowSeconds);
+  return out;
+}
+
 /** Season totals across many games. */
 export function seasonTotals(players, games, events) {
   const byGame = {};
   for (const e of events) (byGame[e.game_id] ||= []).push(e);
-  const out = Object.fromEntries(players.map((p) => [p.id, { games: 0, seconds: 0, goals: 0, assists: 0, saves: 0, cards: 0 }]));
+  const out = Object.fromEntries(players.map((p) => [p.id, { games: 0, seconds: 0, outfieldSeconds: 0, goals: 0, assists: 0, saves: 0, cards: 0 }]));
   for (const g of games) {
     const evs = byGame[g.id] || [];
     const end = clockSeconds(g);
@@ -98,6 +132,11 @@ export function seasonTotals(players, games, events) {
       if (!out[pid]) continue;
       out[pid].seconds += s;
       if (s > 0) out[pid].games += 1;
+    }
+    const slots = slotSecondsFromEvents(evs, end);
+    for (const [pid, sl] of Object.entries(slots)) {
+      if (!out[pid]) continue;
+      out[pid].outfieldSeconds += sl.total - (sl.bySlot.GK || 0);
     }
     for (const e of evs) {
       const t = out[e.player_id];
