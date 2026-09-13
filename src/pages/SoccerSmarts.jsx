@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
-import { VIDEO_CLICK_BONUS } from "../lib/game";
 
 // ---------- Theme ----------
 const C = {
@@ -44,27 +43,6 @@ const PRINCIPLES = {
   "Win It Back Together": { color: "#E01F2D" },
   "Play Out Calmly": { color: "#A6A6AD" },
   "Attack the Gap Fast": { color: "#FF6B75" },
-};
-
-// ---------- Curated drill videos ----------
-// Real YouTube videos, one per position and one per principle, picked from
-// established youth-coaching channels. Update these if a link ever goes dead.
-const POS_VIDEO = {
-  "Goalkeeper": { url: "https://www.youtube.com/watch?v=BHsPdQ7EnZM", title: "Goalkeeper drills for kids" },
-  "Left Defender": { url: "https://www.youtube.com/watch?v=MDF6tB5foI0", title: "Defending drills for kids" },
-  "Center Defender": { url: "https://www.youtube.com/watch?v=LR9ifmPXGhI", title: "3 drills to be a better defender" },
-  "Right Defender": { url: "https://www.youtube.com/watch?v=MDF6tB5foI0", title: "Defending drills for kids" },
-  "Defensive Midfielder": { url: "https://www.youtube.com/watch?v=673p5aPHSxQ", title: "Defensive midfield positioning" },
-  "Left Midfielder": { url: "https://www.youtube.com/watch?v=eD2T5GXeaYE", title: "Dribbling drills for kids" },
-  "Center Midfielder": { url: "https://www.youtube.com/watch?v=InS1CPYQus8", title: "Essentials of central midfield" },
-  "Right Midfielder": { url: "https://www.youtube.com/watch?v=eD2T5GXeaYE", title: "Dribbling drills for kids" },
-  "Striker": { url: "https://www.youtube.com/watch?v=xSe0kmfaXQg", title: "Shooting drills for youth players" },
-};
-const PRINCIPLE_VIDEO = {
-  "Stay Connected": { url: "https://www.youtube.com/watch?v=B7B-BLDzAdc", title: "Defensive shape drill" },
-  "Win It Back Together": { url: "https://www.youtube.com/watch?v=IHeUKdsVHHg", title: "Press & cover as a team" },
-  "Play Out Calmly": { url: "https://www.youtube.com/watch?v=BjZ6oNk9Dnw", title: "Build out from the back" },
-  "Attack the Gap Fast": { url: "https://www.youtube.com/watch?v=3PHWnMKmqUM", title: "Quick counter-attack drill" },
 };
 
 
@@ -588,8 +566,6 @@ export default function TacticsTrainer() {
   const [jersey, setJersey] = useState("");
   const [saved, setSaved] = useState(null); // null | "saving" | "ok" | "fail"
   const savedFor = useRef(null);
-  const [drills, setDrills] = useState([]);
-  const [clicked, setClicked] = useState(() => new Set());
   const [board, setBoard] = useState(null); // null = not loaded yet, [] once fetched
   const [boardErr, setBoardErr] = useState(false);
   const [myPos, setMyPos] = useState("All");
@@ -609,7 +585,7 @@ export default function TacticsTrainer() {
     setRound(buildRound(myPos));
     setIdx(0); setScore(0); setStreak(0); setBestStreak(0);
     setPicked(null); setPrStats({});
-    savedFor.current = null; setSaved(null); setClicked(new Set());
+    savedFor.current = null; setSaved(null);
     setScreen("play");
   }
 
@@ -648,12 +624,6 @@ export default function TacticsTrainer() {
   }, [screen]);
 
   useEffect(() => {
-    if (screen !== "done") return;
-    supabase.from("drill_links").select("*").in("position", [myPos, "All"]).order("sort")
-      .then(({ data }) => setDrills(data || []));
-  }, [screen]);
-
-  useEffect(() => {
     if (screen !== "board") return;
     setBoardErr(false);
     supabase.rpc("public_homework_leaderboard").then(({ data, error }) => {
@@ -669,18 +639,6 @@ export default function TacticsTrainer() {
       week_epoch: weekEpoch(), week_label: weekLabel(), score, best_streak: bestStreak, principles: prStats,
     }).then(({ error }) => setSaved(error ? "fail" : "ok"));
   }
-
-  const creditVideo = (label) => {
-    setClicked((c) => new Set(c).add(label));
-    supabase.from("video_clicks").insert({ jersey: jersey.trim(), week_epoch: weekEpoch(), label }).then(() => {}, () => {});
-  };
-
-  const weakestPrinciple = () => {
-    const missed = Object.entries(prStats).filter(([, v]) => v.total > 0 && v.right < v.total);
-    if (!missed.length) return null;
-    missed.sort((a, b) => a[1].right / a[1].total - b[1].right / b[1].total);
-    return missed[0][0];
-  };
 
   const scoreText = `#${jersey.trim() || "?"} ${name.trim() || "Player"} \u2014 ${myPos === "All" ? "All positions" : myPos} \u2014 Week of ${weekLabel()} \u2014 ${score} pts, best streak ${bestStreak} \u2014 ${levelFor(score)}`;
 
@@ -706,7 +664,7 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v20`}
+          {`Week of ${weekLabel()} · 3-4-1 · v22`}
         </div>
       </div>
 
@@ -867,46 +825,6 @@ export default function TacticsTrainer() {
             </>)}
             <p style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.5, margin: 0, color: C.chalkDim, wordBreak: "break-word" }}>{scoreText}</p>
           </div>
-
-          {drills.length > 0 && (
-            <div style={{ marginTop: 16, textAlign: "left" }}>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: C.chalkDim, marginBottom: 8 }}>
-                Drills for {myPos === "All" ? "your team" : myPos}
-              </div>
-              {drills.map((d) => (
-                <a key={d.id} href={d.url} target="_blank" rel="noreferrer" onClick={() => creditVideo(d.title)}
-                  style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-                  ▶ {d.title}{clicked.has(d.title) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
-                </a>
-              ))}
-            </div>
-          )}
-
-          {(() => {
-            const weak = weakestPrinciple();
-            const posVid = POS_VIDEO[myPos];
-            const prVid = weak ? PRINCIPLE_VIDEO[weak] : null;
-            return (posVid || prVid) && (
-              <div style={{ marginTop: 16, textAlign: "left" }}>
-                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: C.chalkDim, marginBottom: 4 }}>
-                  Keep sharpening
-                </div>
-                <div style={{ fontSize: 12, color: C.chalkDim, marginBottom: 8 }}>Tap a video — +{VIDEO_CLICK_BONUS} bonus points, once per video per week.</div>
-                {prVid && (
-                  <a href={prVid.url} target="_blank" rel="noreferrer" onClick={() => creditVideo(`Watch: ${weak}`)}
-                    style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-                    ▶ {prVid.title} ({weak}){clicked.has(`Watch: ${weak}`) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
-                  </a>
-                )}
-                {posVid && (
-                  <a href={posVid.url} target="_blank" rel="noreferrer" onClick={() => creditVideo(`Watch: ${myPos} basics`)}
-                    style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
-                    ▶ {posVid.title}{clicked.has(`Watch: ${myPos} basics`) && <span style={{ marginLeft: 8, color: C.volt, fontWeight: 800 }}>✓ +{VIDEO_CLICK_BONUS}</span>}
-                  </a>
-                )}
-              </div>
-            );
-          })()}
 
           <button onClick={start} style={{ ...btn("transparent", C.chalk), border: `1.5px solid ${C.line}`, marginTop: 10 }}>
             Play again

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useSeason } from "../lib/season";
-import { seasonTotals, mmss, VIDEO_CLICK_BONUS } from "../lib/game";
+import { seasonTotals, mmss } from "../lib/game";
 import { C, font, h2, inp, sBtn } from "../theme";
 
 export default function Awards() {
@@ -10,7 +10,6 @@ export default function Awards() {
   const [games, setGames] = useState([]);
   const [events, setEvents] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [videoClicks, setVideoClicks] = useState([]);
   const [practices, setPractices] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [awards, setAwards] = useState([]);
@@ -18,16 +17,15 @@ export default function Awards() {
 
   const load = async () => {
     if (!season) return;
-    const [{ data: p }, { data: g }, { data: s }, { data: vc }, { data: pr }, { data: aw }] = await Promise.all([
+    const [{ data: p }, { data: g }, { data: s }, { data: pr }, { data: aw }] = await Promise.all([
       supabase.from("players").select("*").eq("active", true),
       supabase.from("games").select("*").eq("season_id", season.id),
       supabase.from("smarts_sessions").select("*").eq("season_id", season.id),
-      supabase.from("video_clicks").select("*").eq("season_id", season.id),
       supabase.from("practices").select("*").eq("season_id", season.id),
       supabase.from("awards").select("*").eq("season_id", season.id).order("created_at"),
     ]);
     const ps = (p || []).sort((a, b) => Number(a.number) - Number(b.number));
-    setPlayers(ps); setGames(g || []); setSessions(s || []); setVideoClicks(vc || []); setPractices(pr || []); setAwards(aw || []);
+    setPlayers(ps); setGames(g || []); setSessions(s || []); setPractices(pr || []); setAwards(aw || []);
     const gameIds = (g || []).map((x) => x.id);
     const { data: e } = gameIds.length ? await supabase.from("game_events").select("*").in("game_id", gameIds) : { data: [] };
     setEvents(e || []);
@@ -42,9 +40,8 @@ export default function Awards() {
   const hwPoints = useMemo(() => {
     const byJersey = {};
     for (const s of sessions) byJersey[s.jersey] = (byJersey[s.jersey] || 0) + s.score;
-    for (const v of videoClicks) byJersey[v.jersey] = (byJersey[v.jersey] || 0) + VIDEO_CLICK_BONUS;
     return Object.fromEntries(players.map((p) => [p.id, byJersey[p.number] || 0]));
-  }, [players, sessions, videoClicks]);
+  }, [players, sessions]);
 
   const attendancePct = useMemo(() => {
     const totalSessions = practices.length + games.length;
