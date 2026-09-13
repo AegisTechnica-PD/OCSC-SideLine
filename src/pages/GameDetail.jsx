@@ -41,7 +41,7 @@ export default function GameDetail() {
   };
   const saveNotes = async (notes) => { setGame({ ...game, notes }); await supabase.from("games").update({ notes }).eq("id", id); };
 
-  const feed = events.filter((e) => ["goal", "assist", "opp_goal", "save", "card", "half", "final"].includes(e.type));
+  const feed = events.filter((e) => ["goal", "assist", "opp_goal", "og_for", "save", "card", "half", "final"].includes(e.type));
 
   return (
     <div style={{ padding: "0 14px 32px" }}>
@@ -81,7 +81,9 @@ export default function GameDetail() {
         <div key={e.id} style={{ display: "flex", gap: 12, padding: "6px 0", borderBottom: `1px solid ${C.mist}`, fontSize: 14 }}>
           <span style={{ fontFamily: font.display, fontWeight: 400, fontSize: 16, minWidth: 54, color: C.slate }}>{e.half}H {minuteOf(e.second)}'</span>
           <span>{e.type === "goal" ? `GOAL ${tag(e.player_id)}` : e.type === "assist" ? `assist ${tag(e.player_id)}`
-            : e.type === "opp_goal" ? `${game.opponent || "Opponent"} scored` : e.type === "save" ? `Save ${tag(e.player_id)}`
+            : e.type === "opp_goal" ? `${game.opponent || "Opponent"} scored`
+            : e.type === "og_for" ? `Own goal — ${game.opponent || "opponent"} scored on themselves`
+            : e.type === "save" ? `Save ${tag(e.player_id)}`
             : e.type === "card" ? `Card ${tag(e.player_id)}` : e.type === "half" ? e.meta?.label : "Full time"}</span>
         </div>
       ))}

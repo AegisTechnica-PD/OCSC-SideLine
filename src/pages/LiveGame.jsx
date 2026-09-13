@@ -82,6 +82,7 @@ export default function LiveGame() {
     setEvents((ev) => ev.filter((x) => x.id !== last.id));
     if (last.type === "goal") patchGame({ goals_for: Math.max(0, game.goals_for - 1) });
     if (last.type === "opp_goal") patchGame({ goals_against: Math.max(0, game.goals_against - 1) });
+    if (last.type === "og_for") patchGame({ goals_for: Math.max(0, game.goals_for - 1) });
   };
 
   const changeFormation = async (f) => {
@@ -128,6 +129,7 @@ export default function LiveGame() {
     setPicker(null);
   };
   const oppGoal = async () => { await add([{ type: "opp_goal" }]); await patchGame({ goals_against: game.goals_against + 1 }); };
+  const ownGoalForUs = async () => { await add([{ type: "og_for" }]); await patchGame({ goals_for: game.goals_for + 1 }); };
 
   const hint = picker
     ? picker.step === "assist" ? "Assist? Tap a player, or skip." : `${picker.type === "goal" ? "Who scored?" : picker.type === "save" ? "Who saved it?" : "Who got the card?"} Tap a player.`
@@ -141,6 +143,7 @@ export default function LiveGame() {
       : e.type === "goal" ? `GOAL ${tag(e.player_id)}`
       : e.type === "assist" ? `assist ${tag(e.player_id)}`
       : e.type === "opp_goal" ? `${game.opponent || "Opponent"} scored`
+      : e.type === "og_for" ? `Own goal — ${game.opponent || "opponent"} scored on themselves`
       : e.type === "save" ? `Save ${tag(e.player_id)}`
       : e.type === "card" ? `Card ${tag(e.player_id)}`
       : e.type === "half" ? e.meta?.label : e.type === "final" ? "Full time" : e.type,
@@ -178,6 +181,7 @@ export default function LiveGame() {
           <>
             <button onClick={() => startPick("goal")} style={{ ...sBtn, background: C.amber, color: C.ink, border: 0, fontFamily: font.display, fontSize: 17, fontWeight: 400, letterSpacing: 1 }}>GOAL</button>
             <button onClick={oppGoal} style={sBtn}>Opp goal</button>
+            <button onClick={ownGoalForUs} style={sBtn} title="Opponent scored on themselves — counts for us, no player credited">Own goal (us)</button>
             <button onClick={() => startPick("save")} style={sBtn}>Save</button>
             <button onClick={() => startPick("card")} style={sBtn}>Card</button>
             <button onClick={undo} disabled={!events.length} style={{ ...sBtn, marginLeft: "auto", opacity: events.length ? 1 : .4 }}>Undo</button>
