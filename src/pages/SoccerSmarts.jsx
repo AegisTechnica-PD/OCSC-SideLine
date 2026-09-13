@@ -505,10 +505,13 @@ function seededShuffle(arr, seed) {
   return a;
 }
 
-function buildRound(myPos) {
+function buildRound(myPos, extraOffset = 0) {
   // This week's homework: the same 10 questions for every player at a given position,
   // rotating automatically each Monday. 7 position scenarios + 3 whole-team questions.
-  const seed = weekEpoch() * 7919 + hashStr(myPos);
+  // extraOffset is 0 for the first ATTEMPTS_BEFORE_SHUFFLE plays (identical set for
+  // everyone), and a per-attempt value beyond that so replays past the cap get a
+  // fresh mix instead of the same memorizable 10.
+  const seed = weekEpoch() * 7919 + hashStr(myPos) + extraOffset * 104729;
   if (myPos === "All") return seededShuffle(QUESTIONS, seed).slice(0, ROUND_SIZE);
   const mine = QUESTIONS.filter((q) => q.pos === myPos);
   const team = QUESTIONS.filter((q) => q.pos === "Team" && (q.hi.length === 0 || q.hi.includes(myPos)));
@@ -519,6 +522,7 @@ function buildRound(myPos) {
   ];
   return seededShuffle(picked, seed + 2);
 }
+const ATTEMPTS_BEFORE_SHUFFLE = 3;
 
 // Short labels just for the tiny field diagram (space is tight on a phone)
 const FIELD_LABEL = {
@@ -576,16 +580,30 @@ export default function TacticsTrainer() {
   const [bestStreak, setBestStreak] = useState(0);
   const [picked, setPicked] = useState(null);
   const [prStats, setPrStats] = useState({});
+  const [starting, setStarting] = useState(false);
+  const [freshMix, setFreshMix] = useState(false); // true if this round used a shuffled-past-the-cap set
 
   const q = round[idx];
   const optOrder = useMemo(() => (q ? shuffle([0, 1, 2]) : [0, 1, 2]), [q]);
   const showField = q && q.hi && q.hi.length > 0;
 
-  function start() {
-    setRound(buildRound(myPos));
+  async function start() {
+    if (starting) return;
+    setStarting(true);
+    let attempts = 0;
+    try {
+      const { data, error } = await supabase.rpc("smarts_attempt_count", {
+        p_jersey: jersey.trim(), p_week: weekEpoch(), p_position: myPos,
+      });
+      if (!error && typeof data === "number") attempts = data;
+    } catch (_) { /* network hiccup — fail open to the official set */ }
+    const isFresh = attempts >= ATTEMPTS_BEFORE_SHUFFLE;
+    setFreshMix(isFresh);
+    setRound(buildRound(myPos, isFresh ? attempts + 1 : 0));
     setIdx(0); setScore(0); setStreak(0); setBestStreak(0);
     setPicked(null); setPrStats({});
     savedFor.current = null; setSaved(null);
+    setStarting(false);
     setScreen("play");
   }
 
@@ -664,7 +682,7 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v22`}
+          {`Week of ${weekLabel()} · 3-4-1 · v23`}
         </div>
       </div>
 
@@ -692,11 +710,11 @@ export default function TacticsTrainer() {
             ))}
           </div>
 
-          <button onClick={start} disabled={!jersey.trim()} style={{ ...btn(C.volt), opacity: jersey.trim() ? 1 : .45 }}>
-            {jersey.trim() ? "Kick off — this week's 10" : "Enter your number to kick off"}
+          <button onClick={start} disabled={!jersey.trim() || starting} style={{ ...btn(C.volt), opacity: jersey.trim() && !starting ? 1 : .45 }}>
+            {starting ? "Loading…" : jersey.trim() ? "Kick off — this week's 10" : "Enter your number to kick off"}
           </button>
           <p style={{ fontSize: 12, color: C.chalkDim, marginTop: 14, marginBottom: 0, lineHeight: 1.5 }}>
-            This week's 10 homework questions are the same for everyone at your position — a fresh set drops every Friday. When you finish, your score goes straight to the coaches. Play before next week's first practice, and replay all you want — every play adds to your season points.
+            This week's 10 homework questions are the same for everyone at your position — a fresh set drops every Friday. When you finish, your score goes straight to the coaches. Play before next week's first practice — after {ATTEMPTS_BEFORE_SHUFFLE} plays on the same set, replays switch to a fresh mix of questions so it stays a real workout, and every play still adds to your season points.
           </p>
           <button onClick={() => setScreen("board")} style={{ ...btn("transparent", C.chalk), border: `1.5px solid ${C.line}`, marginTop: 12 }}>
             🏆 Leaderboard
@@ -797,6 +815,9 @@ export default function TacticsTrainer() {
           <div style={{ ...display, fontSize: 52, color: C.volt, margin: "4px 0" }}>{score}</div>
           <div style={{ ...display, fontSize: 20, color: C.chalk }}>{levelFor(score)}</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.chalkDim, marginTop: 4 }}>Best streak: {bestStreak} in a row</div>
+          {freshMix && (
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.volt, marginTop: 6 }}>🔀 Fresh mix — you've played the official set enough this week!</div>
+          )}
 
           <div style={{ marginTop: 16, textAlign: "left" }}>
             {Object.entries(prStats).map(([pr, s]) => (
