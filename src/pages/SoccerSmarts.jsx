@@ -45,6 +45,28 @@ const PRINCIPLES = {
   "Attack the Gap Fast": { color: "#FF6B75" },
 };
 
+// ---------- Auto-generated drill search terms ----------
+// No fixed links to go stale — a fresh YouTube search built from the
+// actual topic, so it always matches what she just practiced.
+const POS_SEARCH = {
+  "Goalkeeper": "youth soccer goalkeeper positioning and distribution drill",
+  "Left Defender": "youth soccer outside back 1v1 defending drill",
+  "Center Defender": "youth soccer center back defending drill",
+  "Right Defender": "youth soccer outside back 1v1 defending drill",
+  "Defensive Midfielder": "youth soccer defensive midfielder positioning drill",
+  "Left Midfielder": "youth soccer wide midfielder dribbling drill",
+  "Center Midfielder": "youth soccer central midfielder passing drill",
+  "Right Midfielder": "youth soccer wide midfielder dribbling drill",
+  "Striker": "youth soccer striker finishing and movement drill",
+};
+const PRINCIPLE_SEARCH = {
+  "Stay Connected": "youth soccer defensive shape staying compact drill",
+  "Win It Back Together": "youth soccer counter press winning the ball back drill",
+  "Play Out Calmly": "youth soccer playing out from the back drill",
+  "Attack the Gap Fast": "youth soccer quick transition attack drill",
+};
+const ytSearch = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+
 // ---------- Question bank ----------
 // pos: whose scenario this is ("Team" = everyone)
 // hi: every position involved in the scenario — all get highlighted on the field.
@@ -646,6 +668,13 @@ export default function TacticsTrainer() {
     }).then(({ error }) => setSaved(error ? "fail" : "ok"));
   }
 
+  const weakestPrinciple = () => {
+    const missed = Object.entries(prStats).filter(([, v]) => v.total > 0 && v.right < v.total);
+    if (!missed.length) return null;
+    missed.sort((a, b) => a[1].right / a[1].total - b[1].right / b[1].total);
+    return missed[0][0];
+  };
+
   const scoreText = `#${jersey.trim() || "?"} ${name.trim() || "Player"} \u2014 ${myPos === "All" ? "All positions" : myPos} \u2014 Week of ${weekLabel()} \u2014 ${score} pts, best streak ${bestStreak} \u2014 ${levelFor(score)}`;
 
   const shell = {
@@ -670,7 +699,7 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v18`}
+          {`Week of ${weekLabel()} · 3-4-1 · v19`}
         </div>
       </div>
 
@@ -845,6 +874,30 @@ export default function TacticsTrainer() {
               ))}
             </div>
           )}
+
+          {(() => {
+            const weak = weakestPrinciple();
+            const posQ = POS_SEARCH[myPos];
+            return (posQ || weak) && (
+              <div style={{ marginTop: 16, textAlign: "left" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: C.chalkDim, marginBottom: 8 }}>
+                  Keep sharpening
+                </div>
+                {weak && (
+                  <a href={ytSearch(PRINCIPLE_SEARCH[weak])} target="_blank" rel="noreferrer"
+                    style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
+                    ▶ Watch: {weak}
+                  </a>
+                )}
+                {posQ && (
+                  <a href={ytSearch(posQ)} target="_blank" rel="noreferrer"
+                    style={{ display: "block", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, marginBottom: 8, color: C.chalk, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
+                    ▶ Watch: {myPos} basics
+                  </a>
+                )}
+              </div>
+            );
+          })()}
 
           <button onClick={start} style={{ ...btn("transparent", C.chalk), border: `1.5px solid ${C.line}`, marginTop: 10 }}>
             Play again

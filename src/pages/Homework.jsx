@@ -93,7 +93,7 @@ function DrillLinks() {
     <div style={{ marginTop: 28 }}>
       <div style={h2}>DRILL LINKS</div>
       <p style={{ fontSize: 13, color: C.slate, margin: "0 0 10px" }}>
-        Shown to a player on the Smarts done screen, matched to the position she practiced. "All" shows to everyone.
+        Optional — add a hand-picked video here and it shows first on the Smarts done screen. Either way, every player also gets an auto-generated "Keep sharpening" search matched to her position and whatever she missed most, no maintenance needed.
       </p>
       {grouped.map((g) => (
         <div key={g.pos} style={{ marginBottom: 10 }}>
