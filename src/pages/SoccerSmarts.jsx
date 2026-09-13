@@ -1768,7 +1768,8 @@ export default function TacticsTrainer() {
         p_jersey: jersey.trim(), p_week: weekEpoch(), p_position: myPos,
       });
       if (!error && typeof data === "number") attempts = data;
-    } catch (_) { /* network hiccup — fail open to the official set */ }
+      else if (error) console.error("smarts_attempt_count RPC failed — defaulting to official set:", error);
+    } catch (err) { console.error("smarts_attempt_count network error — defaulting to official set:", err); }
     const isFresh = attempts >= ATTEMPTS_BEFORE_SHUFFLE;
     setFreshMix(isFresh);
     setRound(buildRound(myPos, isFresh ? attempts + 1 : 0));
@@ -1854,7 +1855,7 @@ export default function TacticsTrainer() {
       <div style={{ textAlign: "center", marginBottom: 18 }}>
         <div style={{ ...display, fontSize: 34, lineHeight: 1.05, color: C.volt }}>SOCCER SMARTS ⚽</div>
         <div style={{ color: C.chalkDim, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-          {`Week of ${weekLabel()} · 3-4-1 · v24`}
+          {`Week of ${weekLabel()} · 3-4-1 · v26`}
         </div>
       </div>
 
@@ -1923,6 +1924,11 @@ export default function TacticsTrainer() {
 
       {screen === "play" && q && (
         <div style={card} key={idx}>
+          {freshMix && idx === 0 && (
+            <div style={{ background: C.volt, color: C.pitchDeep, borderRadius: 10, padding: "8px 12px", marginBottom: 12, fontWeight: 800, fontSize: 13, textAlign: "center" }}>
+              🔀 Fresh mix this round — different questions than the official set!
+            </div>
+          )}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ ...display, fontSize: 20, color: C.volt }}>{score}<span style={{ fontSize: 12, color: C.chalkDim, marginLeft: 4 }}>PTS</span></div>
             <div style={{ fontSize: 13, fontWeight: 800, color: streak >= 2 ? C.volt : C.chalkDim }}>
@@ -1983,13 +1989,15 @@ export default function TacticsTrainer() {
 
       {screen === "done" && (
         <div style={{ ...card, textAlign: "center" }}>
+          {freshMix && (
+            <div style={{ background: C.volt, color: C.pitchDeep, borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontWeight: 800, fontSize: 14, lineHeight: 1.4 }}>
+              🔀 FRESH MIX — you've played this week's official set enough times, so this round pulled different questions!
+            </div>
+          )}
           <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", color: C.chalkDim }}>Full time</div>
           <div style={{ ...display, fontSize: 52, color: C.volt, margin: "4px 0" }}>{score}</div>
           <div style={{ ...display, fontSize: 20, color: C.chalk }}>{levelFor(score)}</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.chalkDim, marginTop: 4 }}>Best streak: {bestStreak} in a row</div>
-          {freshMix && (
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.volt, marginTop: 6 }}>🔀 Fresh mix — you've played the official set enough this week!</div>
-          )}
 
           <div style={{ marginTop: 16, textAlign: "left" }}>
             {Object.entries(prStats).map(([pr, s]) => (
