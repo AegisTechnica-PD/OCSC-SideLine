@@ -9,8 +9,16 @@ export default function Landing() {
   };
   return (
     <div style={{ padding: "8vh 18px 24px", display: "grid", gap: 14 }}>
-      <img src="/logo.png" alt="Oregon City Soccer Club" width={128} height={128}
+      <img src="/logo.png" alt="OC Ankle Biters" width={150} height={186}
         style={{ margin: "0 auto", display: "block", imageRendering: "auto" }} />
+      <div style={{ textAlign: "center", margin: "2px 0 8px" }}>
+        <div style={{ fontFamily: font.display, fontWeight: 400, fontSize: 32, letterSpacing: 1, lineHeight: 1, color: C.ink }}>
+          OC ANKLE BITERS
+        </div>
+        <div style={{ fontFamily: font.body, fontWeight: 800, fontSize: 12, letterSpacing: 3, color: C.amber, marginTop: 5 }}>
+          SIDELINE
+        </div>
+      </div>
       <p style={{ fontFamily: font.body, fontSize: 14, color: C.slate, textAlign: "center", margin: "0 0 6px" }}>
         Who's here?
       </p>

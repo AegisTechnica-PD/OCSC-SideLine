@@ -10,8 +10,6 @@ import GameDetail from "./pages/GameDetail.jsx";
 import Players from "./pages/Players.jsx";
 import SoccerSmarts from "./pages/SoccerSmarts.jsx";
 import Homework from "./pages/Homework.jsx";
-import Practices from "./pages/Practices.jsx";
-import Awards from "./pages/Awards.jsx";
 import { SeasonCtx } from "./lib/season";
 
 export default function App() {
@@ -40,8 +38,12 @@ export default function App() {
     <SeasonCtx.Provider value={{ seasons, season, setSeasonId, reload: reloadSeasons }}>
     <div style={{ maxWidth: 520, margin: "0 auto", minHeight: "100vh" }}>
       <header style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "12px 14px 8px", background: C.chalk }}>
-        <div style={{ fontFamily: font.display, fontWeight: 400, fontSize: 24, letterSpacing: 1, lineHeight: 1 }}>
-          <span style={{ color: C.amber }}>OCSC</span><span style={{ color: C.slate }}> · SIDELINE</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <img src="/logo.png" alt="OC Ankle Biters" style={{ height: 34, width: "auto", display: "block" }} />
+          <div style={{ fontFamily: font.display, fontWeight: 400, lineHeight: 1.15 }}>
+            <div style={{ fontSize: 18, letterSpacing: 0.5, color: C.ink }}>OC ANKLE BITERS</div>
+            <div style={{ fontSize: 10, letterSpacing: 2.5, color: C.slate, marginTop: 1 }}>SIDELINE</div>
+          </div>
         </div>
         {session && seasons.length > 1 && (
           <select value={seasonId || ""} onChange={(e) => setSeasonId(e.target.value)} aria-label="Season"
@@ -51,7 +53,7 @@ export default function App() {
         )}
         {session && (
           <nav style={{ marginLeft: "auto", display: "flex", gap: 2, whiteSpace: "nowrap" }}>
-            {[["/games", "Games"], ["/players", "Players"], ["/homework", "Homework"], ["/practices", "Practices"], ["/awards", "Awards"]].map(([to, label]) => (
+            {[["/games", "Games"], ["/players", "Players"], ["/homework", "Homework"]].map(([to, label]) => (
               <NavLink key={to} to={to} style={({ isActive }) => ({
                 textDecoration: "none", borderRadius: 6, padding: "6px 8px", fontSize: 13, fontWeight: 600,
                 background: isActive ? C.ink : "transparent", color: isActive ? C.chalk : C.slate })}>
@@ -79,8 +81,6 @@ export default function App() {
             <Route path="/games/:id" element={<GameDetail />} />
             <Route path="/players" element={<Players />} />
             <Route path="/homework" element={<Homework />} />
-            <Route path="/practices" element={<Practices />} />
-            <Route path="/awards" element={<Awards />} />
             <Route path="*" element={<Navigate to="/games" replace />} />
           </>
         )}

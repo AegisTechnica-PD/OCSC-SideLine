@@ -1,6 +1,6 @@
-# OCSC Sideline
+# Sideline — OC Ankle Biters
 
-Live sub tracker, game log, and season stats for the OCSC 5th/6th grade girls team. React + Vite on Vercel, Supabase for data and sign-in.
+Live sub tracker, game log, and season stats for the OC Ankle Biters 5th/6th grade girls team. React + Vite on Vercel, Supabase for data and sign-in.
 
 ## Deploy (about 15 minutes)
 
